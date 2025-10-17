@@ -482,41 +482,298 @@ function HuertoApp() {
           </div>
         )}
 
-        {/* Vista Calendario - Simplificada por brevedad */}
+        {/* Vista Calendario */}
         {vistaActual === 'calendario' && (
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Calendario de Siembra - Málaga</h2>
-            <select 
-              value={mesSeleccionado} 
-              onChange={(e) => setMesSeleccionado(parseInt(e.target.value))} 
-              className="px-4 py-2 border border-gray-300 rounded-lg mb-6"
-            >
-              {MESES.map((mes, idx) => <option key={idx} value={idx}>{mes}</option>)}
-            </select>
-            <div className="bg-blue-50 p-4 rounded mb-4">
-              <p className="font-semibold text-blue-900">{infoMes.clima}</p>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-bold text-green-800 mb-2">🌱 Siembra Directa</h3>
-                <div className="flex flex-wrap gap-2">
-                  {infoMes.siembraDirecta.map((c, i) => (
-                    <span key={i} className="bg-green-200 text-green-900 px-3 py-1 rounded-full text-sm">{c}</span>
+          <div>
+            <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Calendario de Siembra - Málaga</h2>
+              <div className="flex items-center gap-4 mb-6">
+                <label className="font-semibold text-gray-700">Seleccionar mes:</label>
+                <select
+                  value={mesSeleccionado}
+                  onChange={(e) => setMesSeleccionado(parseInt(e.target.value))}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 font-medium"
+                >
+                  {MESES.map((mes, idx) => (
+                    <option key={idx} value={idx}>{mes}</option>
                   ))}
+                </select>
+              </div>
+
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <Icons.Thermometer />
+                  <span className="font-semibold text-blue-900">Clima de {MESES[mesSeleccionado]}</span>
                 </div>
+                <p className="text-gray-700">{infoMes.clima}</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-green-50 rounded-lg p-5">
+                  <h3 className="font-bold text-green-800 text-lg mb-3 flex items-center gap-2">
+                    <Icons.Sprout />
+                    Siembra Directa
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {infoMes.siembraDirecta.map((cultivo, idx) => (
+                      <span key={idx} className="bg-green-200 text-green-900 px-3 py-1 rounded-full text-sm font-medium">
+                        {cultivo}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-yellow-50 rounded-lg p-5">
+                  <h3 className="font-bold text-yellow-800 text-lg mb-3">🌱 Semilleros</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {infoMes.semilleros.map((cultivo, idx) => (
+                      <span key={idx} className="bg-yellow-200 text-yellow-900 px-3 py-1 rounded-full text-sm font-medium">
+                        {cultivo}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 rounded-lg p-5">
+                  <h3 className="font-bold text-blue-800 text-lg mb-3">🌿 Trasplante</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {infoMes.trasplante.map((cultivo, idx) => (
+                      <span key={idx} className="bg-blue-200 text-blue-900 px-3 py-1 rounded-full text-sm font-medium">
+                        {cultivo}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-orange-50 rounded-lg p-5">
+                  <h3 className="font-bold text-orange-800 text-lg mb-3">🍅 Cosecha</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {infoMes.cosecha.map((cultivo, idx) => (
+                      <span key={idx} className="bg-orange-200 text-orange-900 px-3 py-1 rounded-full text-sm font-medium">
+                        {cultivo}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 bg-purple-50 rounded-lg p-5">
+                <h3 className="font-bold text-purple-800 text-lg mb-3">✅ Tareas del Mes</h3>
+                <ul className="space-y-2">
+                  {infoMes.tareas.map((tarea, idx) => (
+                    <li key={idx} className="flex items-start gap-2 text-gray-700">
+                      <span className="text-purple-600 font-bold mt-1">•</span>
+                      <span>{tarea}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           </div>
         )}
 
-        {/* Vista Consejos - Simplificada */}
+        {/* Vista Consejos */}
         {vistaActual === 'consejos' && (
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Consejos para Málaga</h2>
-            <p className="text-gray-700">
-              Málaga goza de un clima mediterráneo excepcional con más de 300 días de sol al año.
-              Los inviernos son suaves (15-18°C) y los veranos cálidos (30°C o más).
-            </p>
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Icons.Sun />
+                <h2 className="text-2xl font-bold text-gray-800">Clima de Málaga</h2>
+              </div>
+              <p className="text-gray-700 mb-4">
+                Málaga goza de un clima mediterráneo excepcional con más de 300 días de sol al año. 
+                Los inviernos son suaves con temperaturas de 15-18°C y los veranos cálidos superan los 30°C.
+              </p>
+              <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+                <div className="flex items-center gap-2 mb-2">
+                  <Icons.AlertCircle />
+                  <span className="font-semibold text-yellow-700">Época actual (Octubre)</span>
+                </div>
+                <p className="text-gray-700 mb-2">
+                  <strong>Siembra directa:</strong> Ajos, habas, guisantes, espinacas, rabanitos, zanahorias y acelgas.
+                </p>
+                <p className="text-gray-700">
+                  El clima fresco es ideal para cultivos de otoño-invierno. Reduce el riego y adapta a las lluvias otoñales.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Icons.Droplet />
+                <h2 className="text-2xl font-bold text-gray-800">Riego en Clima Mediterráneo</h2>
+              </div>
+              <div className="space-y-4 text-gray-700">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h3 className="font-bold text-blue-900 mb-2">☀️ Verano (Junio-Septiembre)</h3>
+                  <ul className="space-y-2 ml-4">
+                    <li className="flex gap-2">
+                      <span>•</span>
+                      <span><strong>Riego diario o cada 2 días</strong> según temperaturas</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span>•</span>
+                      <span><strong>1 litro por planta al día</strong> para tomates, calabacines, berenjenas</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span>•</span>
+                      <span><strong>Horario:</strong> temprano por la mañana o al atardecer</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span>•</span>
+                      <span>Evitar regar en horas de máximo calor para prevenir evaporación</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <h3 className="font-bold text-green-900 mb-2">🍂 Otoño-Invierno</h3>
+                  <ul className="space-y-2 ml-4">
+                    <li className="flex gap-2">
+                      <span>•</span>
+                      <span><strong>Reducir frecuencia</strong> - el suelo retiene más humedad</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span>•</span>
+                      <span><strong>Adaptar a lluvias</strong> naturales de la temporada</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span>•</span>
+                      <span>Riego moderado según condiciones meteorológicas</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <h3 className="font-bold text-purple-900 mb-2">💡 Técnicas de Ahorro</h3>
+                  <ul className="space-y-2 ml-4">
+                    <li className="flex gap-2">
+                      <span>•</span>
+                      <span><strong>Mulching o acolchado:</strong> paja, hojas secas o compost para retener humedad</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span>•</span>
+                      <span><strong>Riego por goteo:</strong> sistema eficiente que ahorra agua</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span>•</span>
+                      <span><strong>Programador de riego:</strong> mantiene regularidad sin desperdicios</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Icons.Sprout />
+                <h2 className="text-2xl font-bold text-gray-800">Rotación y Asociación de Cultivos</h2>
+              </div>
+              <p className="text-gray-700 mb-4">
+                La rotación de cultivos es fundamental para mantener la salud del suelo y prevenir enfermedades. 
+                Evita plantar la misma familia de hortalizas en el mismo bancal dos años consecutivos.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-amber-50 p-4 rounded-lg border-l-4 border-amber-500">
+                  <h3 className="font-bold text-amber-900 mb-2">🥕 Cultivos de Raíz</h3>
+                  <p className="text-sm text-gray-700">Zanahorias, remolachas, rabanitos, nabos</p>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+                  <h3 className="font-bold text-green-900 mb-2">🥬 Cultivos de Hoja</h3>
+                  <p className="text-sm text-gray-700">Lechugas, espinacas, acelgas, coles</p>
+                </div>
+                <div className="bg-red-50 p-4 rounded-lg border-l-4 border-red-500">
+                  <h3 className="font-bold text-red-900 mb-2">🍅 Cultivos de Fruto</h3>
+                  <p className="text-sm text-gray-700">Tomates, pimientos, berenjenas, calabacines</p>
+                </div>
+                <div className="bg-lime-50 p-4 rounded-lg border-l-4 border-lime-500">
+                  <h3 className="font-bold text-lime-900 mb-2">🌱 Leguminosas</h3>
+                  <p className="text-sm text-gray-700">Habas, guisantes, judías (enriquecen el suelo con nitrógeno)</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-3xl">🍅</span>
+                <h2 className="text-2xl font-bold text-gray-800">Tomates: El Rey del Huerto Malagueño</h2>
+              </div>
+              <div className="space-y-3 text-gray-700">
+                <div className="bg-red-50 p-4 rounded-lg">
+                  <p className="font-semibold mb-2">📅 Calendario del Tomate</p>
+                  <ul className="space-y-1 ml-4 text-sm">
+                    <li>• <strong>Semillero:</strong> Enero-Marzo (protegido)</li>
+                    <li>• <strong>Trasplante:</strong> Abril-Mayo (cuando T° nocturna &gt; 10°C)</li>
+                    <li>• <strong>Temperatura ideal:</strong> 20-35°C</li>
+                    <li>• <strong>Sol necesario:</strong> 6-10 horas diarias</li>
+                  </ul>
+                </div>
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="font-semibold mb-2">💧 Riego de Tomates</p>
+                  <p className="text-sm">
+                    <strong>Verano:</strong> 1 litro diario por planta, o 2-3 litros cada 2-3 días. 
+                    En Málaga se pueden cultivar tomates tanto en verano como en invierno gracias al clima favorable.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-3xl">🌿</span>
+                <h2 className="text-2xl font-bold text-gray-800">Plantas Aromáticas</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="border-l-4 border-green-400 pl-4 py-2">
+                  <p className="font-bold text-green-800">🌱 Albahaca</p>
+                  <p className="text-sm text-gray-700">Primavera (Marzo-Mayo). Mínimo 6h de sol</p>
+                </div>
+                <div className="border-l-4 border-purple-400 pl-4 py-2">
+                  <p className="font-bold text-purple-800">🌿 Romero</p>
+                  <p className="text-sm text-gray-700">Primavera u otoño. Muy resistente</p>
+                </div>
+                <div className="border-l-4 border-lime-400 pl-4 py-2">
+                  <p className="font-bold text-lime-800">🍃 Perejil</p>
+                  <p className="text-sm text-gray-700">Todo el año. Mejor Feb-Sep</p>
+                </div>
+                <div className="border-l-4 border-teal-400 pl-4 py-2">
+                  <p className="font-bold text-teal-800">🌾 Cilantro</p>
+                  <p className="text-sm text-gray-700">Otoño en climas cálidos como Málaga</p>
+                </div>
+                <div className="border-l-4 border-pink-400 pl-4 py-2">
+                  <p className="font-bold text-pink-800">🌸 Orégano</p>
+                  <p className="text-sm text-gray-700">Primavera u otoño. Temperatura 20°C</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-3xl">🌍</span>
+                <h2 className="text-2xl font-bold text-gray-800">Preparación del Suelo</h2>
+              </div>
+              <div className="space-y-3 text-gray-700">
+                <p className="font-semibold">Antes de cada temporada de siembra:</p>
+                <ul className="space-y-2 ml-4">
+                  <li className="flex gap-2">
+                    <span className="text-green-600">✓</span>
+                    <span><strong>Laborear</strong> la tierra con horca de cavar</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-green-600">✓</span>
+                    <span><strong>Añadir estiércol curado</strong> de caballo o compost maduro</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-green-600">✓</span>
+                    <span><strong>Dejar reposar</strong> la tierra antes del trasplante</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-green-600">✓</span>
+                    <span>Asegurar <strong>buen drenaje</strong> y nutrientes necesarios</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         )}
       </div>
