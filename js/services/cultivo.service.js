@@ -1,14 +1,20 @@
 /**
- * Servicio de Cultivos
- * Gestión de datos con Back4app
+ * Servicio de Cultivos - Actualizado con Huertos
+ * Gestión de datos con Back4app filtrado por huerto
  */
 
 const CultivoService = {
-  // Obtener todos los cultivos
-  async getAll() {
+  // Obtener todos los cultivos de un huerto
+  async getAll(huertoId) {
     try {
+      if (!huertoId) throw new Error('Se requiere un huerto');
+
+      const HuertoClass = Parse.Object.extend("Huerto");
+      const huerto = HuertoClass.createWithoutData(huertoId);
+
       const CultivoClass = Parse.Object.extend("Cultivo");
       const query = new Parse.Query(CultivoClass);
+      query.equalTo('huerto', huerto);
       query.limit(1000);
       query.descending("createdAt");
       
@@ -32,23 +38,35 @@ const CultivoService = {
   },
 
   // Crear un nuevo cultivo
-  async create(cultivoData) {
+  async create(huertoId, cultivoData) {
     try {
+      if (!huertoId) throw new Error('Se requiere un huerto');
+
       // Validar datos
       const { isValid, errors } = window.helpers.validateCultivo(cultivoData);
       if (!isValid) {
         throw new Error(Object.values(errors).join(', '));
       }
 
+      const HuertoClass = Parse.Object.extend("Huerto");
+      const huerto = HuertoClass.createWithoutData(huertoId);
+
       const CultivoClass = Parse.Object.extend("Cultivo");
       const cultivo = new CultivoClass();
       
+      cultivo.set('huerto', huerto);
       cultivo.set('nombre', cultivoData.nombre);
       cultivo.set('parcela', cultivoData.parcela);
       cultivo.set('fechaSiembra', cultivoData.fechaSiembra);
       cultivo.set('estado', cultivoData.estado || 'creciendo');
       cultivo.set('riego', cultivoData.riego || 'moderado');
       cultivo.set('notas', cultivoData.notas || '');
+
+      // Heredar ACL del huerto
+      const queryHuerto = new Parse.Query(HuertoClass);
+      const huertoObj = await queryHuerto.get(huertoId);
+      const acl = huertoObj.getACL();
+      cultivo.setACL(acl);
       
       const resultado = await cultivo.save();
       
@@ -111,14 +129,22 @@ const CultivoService = {
     }
   },
 
-  // Buscar cultivos
-  async search(searchTerm) {
+  // Buscar cultivos en un huerto
+  async search(huertoId, searchTerm) {
     try {
+      if (!huertoId) throw new Error('Se requiere un huerto');
+
+      const HuertoClass = Parse.Object.extend("Huerto");
+      const huerto = HuertoClass.createWithoutData(huertoId);
+
       const CultivoClass = Parse.Object.extend("Cultivo");
+      
       const queryNombre = new Parse.Query(CultivoClass);
+      queryNombre.equalTo('huerto', huerto);
       queryNombre.matches('nombre', searchTerm, 'i');
       
       const queryParcela = new Parse.Query(CultivoClass);
+      queryParcela.equalTo('huerto', huerto);
       queryParcela.matches('parcela', searchTerm, 'i');
       
       const mainQuery = Parse.Query.or(queryNombre, queryParcela);
@@ -141,10 +167,10 @@ const CultivoService = {
     }
   },
 
-  // Obtener estadísticas
-  async getStats() {
+  // Obtener estadísticas de un huerto
+  async getStats(huertoId) {
     try {
-      const cultivos = await this.getAll();
+      const cultivos = await this.getAll(huertoId);
       
       const estadosCuenta = cultivos.reduce((acc, c) => {
         acc[c.estado] = (acc[c.estado] || 0) + 1;

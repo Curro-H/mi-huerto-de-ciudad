@@ -1,12 +1,15 @@
 /**
  * Aplicación Principal - Mi Huerto de Ciudad
- * Versión sin JSX para compatibilidad directa
+ * Con sistema de autenticación y huertos
  */
 
 function HuertoApp() {
   const { useState, useEffect, createElement: h } = React;
   
   const [parseReady, setParseReady] = useState(false);
+  const [usuario, setUsuario] = useState(null);
+  const [huertos, setHuertos] = useState([]);
+  const [huertoActual, setHuertoActual] = useState(null);
   const [cultivos, setCultivos] = useState([]);
   const [tareas, setTareas] = useState([]);
   const [sincronizando, setSincronizando] = useState(false);
@@ -20,9 +23,24 @@ function HuertoApp() {
 
   useEffect(() => {
     if (parseReady) {
-      cargarDatos();
+      verificarSesion();
     }
   }, [parseReady]);
+
+  useEffect(() => {
+    if (usuario && huertos.length > 0) {
+      // Si hay huertos pero no hay uno seleccionado, seleccionar el primero
+      if (!huertoActual) {
+        setHuertoActual(huertos[0].id);
+      }
+    }
+  }, [usuario, huertos]);
+
+  useEffect(() => {
+    if (huertoActual) {
+      cargarDatosHuerto();
+    }
+  }, [huertoActual]);
 
   const inicializarParse = () => {
     try {
@@ -42,12 +60,38 @@ function HuertoApp() {
     }
   };
 
-  const cargarDatos = async () => {
+  const verificarSesion = () => {
+    const usuarioActual = window.AuthService.getCurrentUser();
+    if (usuarioActual) {
+      setUsuario(usuarioActual);
+      cargarHuertos();
+    }
+  };
+
+  const cargarHuertos = async () => {
+    setSincronizando(true);
+    try {
+      const huertosList = await window.HuertoService.getMisHuertos();
+      setHuertos(huertosList);
+      setConectado(true);
+      console.log(`✅ ${huertosList.length} huertos cargados`);
+    } catch (error) {
+      console.error('❌ Error al cargar huertos:', error);
+      setConectado(false);
+      mostrarMensaje('Error al cargar huertos');
+    } finally {
+      setSincronizando(false);
+    }
+  };
+
+  const cargarDatosHuerto = async () => {
+    if (!huertoActual) return;
+    
     setSincronizando(true);
     try {
       const [cultivosData, tareasData] = await Promise.all([
-        window.CultivoService.getAll(),
-        window.TareaService.getAll()
+        window.CultivoService.getAll(huertoActual),
+        window.TareaService.getAll(huertoActual)
       ]);
       
       setCultivos(cultivosData);
@@ -68,11 +112,34 @@ function HuertoApp() {
     setTimeout(() => setMensajeEstado(''), 3000);
   };
 
+  const handleLoginSuccess = (user) => {
+    setUsuario(user);
+    cargarHuertos();
+  };
+
+  const handleLogout = async () => {
+    if (!confirm('¿Cerrar sesión?')) return;
+    
+    try {
+      await window.AuthService.logout();
+      setUsuario(null);
+      setHuertos([]);
+      setHuertoActual(null);
+      setCultivos([]);
+      setTareas([]);
+      mostrarMensaje('Sesión cerrada');
+    } catch (error) {
+      mostrarMensaje('Error al cerrar sesión');
+    }
+  };
+
   // Handlers Cultivos
   const handleAgregarCultivo = async (cultivoData) => {
+    if (!huertoActual) return;
+    
     setSincronizando(true);
     try {
-      const nuevo = await window.CultivoService.create({
+      const nuevo = await window.CultivoService.create(huertoActual, {
         ...cultivoData,
         estado: 'creciendo',
         riego: 'moderado'
@@ -127,9 +194,11 @@ function HuertoApp() {
 
   // Handlers Tareas
   const handleAgregarTarea = async (tareaData) => {
+    if (!huertoActual) return;
+    
     setSincronizando(true);
     try {
-      const nueva = await window.TareaService.create({
+      const nueva = await window.TareaService.create(huertoActual, {
         ...tareaData,
         prioridad: 'media',
         completada: false
@@ -188,7 +257,24 @@ function HuertoApp() {
     );
   }
 
+  // Si no hay usuario, mostrar login
+  if (!usuario) {
+    return h(window.LoginView, { onLoginSuccess: handleLoginSuccess });
+  }
+
   const renderVista = () => {
+    if (!huertoActual) {
+      return h('div', { className: 'info-box' },
+        h('div', { className: 'info-box-header' },
+          h(window.Icons.AlertCircle, { size: 20 }),
+          h('span', null, 'Selecciona o crea un huerto')
+        ),
+        h('p', { className: 'info-box-content' }, 
+          'Necesitas seleccionar un huerto para comenzar a trabajar'
+        )
+      );
+    }
+
     switch (vistaActual) {
       case 'cultivos':
         return h(window.CultivosView, {
@@ -216,7 +302,19 @@ function HuertoApp() {
   };
 
   return h('div', { className: 'app-container' },
-    h(window.Header, { conectado, sincronizando, mensajeEstado }),
+    h(window.Header, { 
+      usuario, 
+      conectado, 
+      sincronizando, 
+      mensajeEstado,
+      onLogout: handleLogout
+    }),
+    h(window.HuertosSelector, {
+      huertos,
+      huertoActual,
+      onSeleccionar: setHuertoActual,
+      onRecargar: cargarHuertos
+    }),
     h(window.Navigation, { vistaActual, setVistaActual }),
     h('main', { id: 'main-content', role: 'main' }, renderVista())
   );

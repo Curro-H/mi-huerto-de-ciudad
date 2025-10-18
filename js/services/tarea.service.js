@@ -1,14 +1,20 @@
 /**
- * Servicio de Tareas
- * Gestión de tareas con Back4app
+ * Servicio de Tareas - Actualizado con Huertos
+ * Gestión de tareas con Back4app filtrado por huerto
  */
 
 const TareaService = {
-  // Obtener todas las tareas
-  async getAll() {
+  // Obtener todas las tareas de un huerto
+  async getAll(huertoId) {
     try {
+      if (!huertoId) throw new Error('Se requiere un huerto');
+
+      const HuertoClass = Parse.Object.extend("Huerto");
+      const huerto = HuertoClass.createWithoutData(huertoId);
+
       const TareaClass = Parse.Object.extend("Tarea");
       const query = new Parse.Query(TareaClass);
+      query.equalTo('huerto', huerto);
       query.limit(1000);
       query.descending("createdAt");
       
@@ -30,21 +36,33 @@ const TareaService = {
   },
 
   // Crear una nueva tarea
-  async create(tareaData) {
+  async create(huertoId, tareaData) {
     try {
+      if (!huertoId) throw new Error('Se requiere un huerto');
+
       // Validar datos
       const { isValid, errors } = window.helpers.validateTarea(tareaData);
       if (!isValid) {
         throw new Error(Object.values(errors).join(', '));
       }
 
+      const HuertoClass = Parse.Object.extend("Huerto");
+      const huerto = HuertoClass.createWithoutData(huertoId);
+
       const TareaClass = Parse.Object.extend("Tarea");
       const tarea = new TareaClass();
       
+      tarea.set('huerto', huerto);
       tarea.set('descripcion', tareaData.descripcion);
       tarea.set('prioridad', tareaData.prioridad || 'media');
       tarea.set('completada', tareaData.completada || false);
       tarea.set('fechaLimite', tareaData.fechaLimite || null);
+
+      // Heredar ACL del huerto
+      const queryHuerto = new Parse.Query(HuertoClass);
+      const huertoObj = await queryHuerto.get(huertoId);
+      const acl = huertoObj.getACL();
+      tarea.setACL(acl);
       
       const resultado = await tarea.save();
       
@@ -126,11 +144,17 @@ const TareaService = {
     }
   },
 
-  // Eliminar tareas completadas
-  async deleteCompleted() {
+  // Eliminar tareas completadas de un huerto
+  async deleteCompleted(huertoId) {
     try {
+      if (!huertoId) throw new Error('Se requiere un huerto');
+
+      const HuertoClass = Parse.Object.extend("Huerto");
+      const huerto = HuertoClass.createWithoutData(huertoId);
+
       const TareaClass = Parse.Object.extend("Tarea");
       const query = new Parse.Query(TareaClass);
+      query.equalTo('huerto', huerto);
       query.equalTo('completada', true);
       
       const tareas = await query.find();
@@ -143,10 +167,10 @@ const TareaService = {
     }
   },
 
-  // Obtener estadísticas
-  async getStats() {
+  // Obtener estadísticas de un huerto
+  async getStats(huertoId) {
     try {
-      const tareas = await this.getAll();
+      const tareas = await this.getAll(huertoId);
       
       const completadas = tareas.filter(t => t.completada).length;
       const pendientes = tareas.length - completadas;

@@ -1,0 +1,178 @@
+/**
+ * Sistema de Modales
+ */
+
+.modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 9999 !important;
+  padding: var(--space-4);
+  transform: none !important;
+  margin: 0 !important;
+}
+
+/* Desactivar animación temporalmente para debug */
+@keyframes fadeIn {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-content {
+  background: white;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 10000;
+  margin: auto;
+}
+
+/* Desactivar animación temporalmente para debug */
+@keyframes slideUp {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-content.modal-lg {
+  max-width: 700px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-6);
+  border-bottom: 2px solid var(--color-neutral-200);
+}
+
+.modal-header h2 {
+  margin: 0;
+}
+
+.modal-body {
+  padding: var(--space-6);
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border-top: 2px solid var(--color-neutral-200);
+  background: var(--color-neutral-50);
+}
+
+/* Utilidades adicionales */
+.text-muted {
+  color: var(--color-neutral-600);
+}
+
+.text-semibold {
+  font-weight: var(--font-weight-semibold);
+}
+
+.text-bold {
+  font-weight: var(--font-weight-bold);
+}
+
+/* Importante: asegurar que los cards no corten los modales */
+.card {
+  overflow: visible !important;
+  transform: none !important;
+  will-change: auto !important;
+}
+
+.card:hover {
+  transform: translateY(-2px) !important;
+}
+
+/* Asegurar que el contenedor de la app no interfiera */
+.app-container {
+  position: relative;
+  transform: none !important;
+}
+
+.form-label-required::after {
+  content: ' *';
+  color: var(--color-error);
+}
+
+.form-row {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+@media (max-width: 639px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-content {
+    max-height: 95vh;
+  }
+}
+
+/* Botón con luz (light) */
+.btn-light {
+  background: white;
+  border: 2px solid var(--color-neutral-300);
+  color: var(--color-neutral-700);
+}
+
+.btn-light:hover:not(:disabled) {
+  background: var(--color-neutral-50);
+  border-color: var(--color-neutral-400);
+}
+
+/* Form check input (checkbox) */
+.form-check-input {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--color-primary-600);
+}
+
+.form-check-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Heading sizes */
+.heading-4 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.heading-5 {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
