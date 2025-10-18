@@ -1,4 +1,7 @@
-// data.js - Datos del calendario de siembra de Málaga
+/**
+ * Datos del Calendario de Siembra para Málaga
+ * Información mensual específica del clima mediterráneo
+ */
 
 const MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -112,22 +115,7 @@ const CULTIVOS_MALAGA = [
   'Brócoli', 'Coliflor', 'Coles', 'Escarola', 'Maíz dulce'
 ];
 
-// Funciones helper para colores
-const getColorEstado = (estado) => ({
-  'creciendo': 'bg-green-100 text-green-800',
-  'floreciendo': 'bg-yellow-100 text-yellow-800',
-  'cosecha': 'bg-orange-100 text-orange-800',
-  'problema': 'bg-red-100 text-red-800'
-}[estado] || 'bg-gray-100 text-gray-800');
-
-const getColorPrioridad = (prioridad) => ({
-  'alta': 'border-red-500',
-  'media': 'border-yellow-500',
-  'baja': 'border-green-500'
-}[prioridad] || 'border-gray-300');
-
-const getColorRiego = (riego) => ({
-  'diario': 'text-blue-600',
-  'moderado': 'text-blue-400',
-  'bajo': 'text-blue-300'
-}[riego] || 'text-gray-600');
+// Exportar
+window.MESES = MESES;
+window.CALENDARIO_MALAGA = CALENDARIO_MALAGA;
+window.CULTIVOS_MALAGA = CULTIVOS_MALAGA;

@@ -1,0 +1,46 @@
+/**
+ * Sistema Tipográfico
+ */
+
+body {
+  font-family: var(--font-family-primary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+  color: var(--color-neutral-900);
+}
+
+.heading-1, h1 {
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.02em;
+}
+
+.heading-2, h2 {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+.heading-3, h3 {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.text-body {
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  color: var(--color-neutral-700);
+}
+
+.text-small {
+  font-size: var(--font-size-sm);
+  color: var(--color-neutral-600);
+}
+
+@media (max-width: 639px) {
+  .heading-1, h1 { font-size: var(--font-size-3xl); }
+  .heading-2, h2 { font-size: var(--font-size-2xl); }
+}
