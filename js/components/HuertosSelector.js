@@ -31,6 +31,12 @@ function HuertosSelector({ huertos, huertoActual, onSeleccionar, onRecargar }) {
     setMostrarGestion(false);
   };
 
+  // DEBUG: Botón temporal para listar usuarios
+  const handleDebugUsuarios = async () => {
+    console.log('Ejecutando debug de usuarios...');
+    await window.HuertoService.debugListarUsuarios();
+  };
+
   if (huertos.length === 0) {
     return h('div', { className: 'info-box', style: { marginBottom: 'var(--space-6)' } },
       h('div', { className: 'info-box-header' },
@@ -120,6 +126,15 @@ function HuertosSelector({ huertos, huertoActual, onSeleccionar, onRecargar }) {
           },
             h(window.Icons.Info, { size: 20 }),
             h('span', { className: 'mobile-hidden' }, 'Gestionar')
+          ),
+          h('button', {
+            onClick: handleDebugUsuarios,
+            className: 'btn btn-ghost',
+            title: 'Debug: Listar usuarios',
+            style: { background: '#FEE2E2', color: '#DC2626' }
+          },
+            h(window.Icons.Info, { size: 20 }),
+            h('span', { className: 'mobile-hidden' }, '🐛 Debug')
           )
         )
       )
@@ -378,6 +393,8 @@ function ModalGestionHuerto({ huerto, onCerrar, onActualizado }) {
       setError(err.message);
     }
   };
+
+  if (!listo) return null;
 
   if (!detalles) {
     const loadingContent = h('div', { 

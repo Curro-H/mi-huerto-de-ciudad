@@ -174,62 +174,139 @@ const HuertoService = {
     }
   },
 
-  // Invitar colaborador por email
+  // Invitar colaborador por email - CON CLOUD FUNCTION
   async invitarColaborador(huertoId, emailColaborador) {
     try {
+      console.log('=== INICIO invitarColaborador ===');
+      console.log('1. HuertoId:', huertoId);
+      console.log('2. Email colaborador:', emailColaborador);
+      
       const user = Parse.User.current();
+      console.log('3. Usuario actual:', user ? user.id : 'NO HAY USUARIO');
+      
       if (!user) throw new Error('Usuario no autenticado');
 
       // Buscar el huerto
+      console.log('4. Buscando huerto...');
       const HuertoClass = Parse.Object.extend("Huerto");
       const queryHuerto = new Parse.Query(HuertoClass);
       queryHuerto.include('colaboradores');
       const huerto = await queryHuerto.get(huertoId);
+      console.log('5. Huerto encontrado:', huerto.id);
+      console.log('6. Dueño del huerto:', huerto.get('dueno').id);
       
       // Verificar que es el dueño
       if (huerto.get('dueno').id !== user.id) {
         throw new Error('Solo el dueño puede invitar colaboradores');
       }
+      console.log('7. Verificación de dueño: OK');
 
-      // Buscar usuario por email
-      const queryUser = new Parse.Query(Parse.User);
-      queryUser.equalTo('email', emailColaborador);
-      const colaborador = await queryUser.first();
+      // Intentar buscar por username
+      console.log('8. Preparando búsqueda de usuario...');
+      const emailNormalizado = emailColaborador.toLowerCase().trim();
+      console.log('9. Email normalizado:', emailNormalizado);
+      
+      let colaborador;
+      
+      // Intentar con Cloud Function primero
+      console.log('10. Intentando con Cloud Function buscarUsuarioPorEmail...');
+      try {
+        const resultado = await Parse.Cloud.run('buscarUsuarioPorEmail', {
+          email: emailNormalizado
+        });
+        
+        console.log('11. Cloud Function ejecutada exitosamente');
+        console.log('12. Resultado:', resultado);
+        
+        if (resultado) {
+          console.log('13. Usuario encontrado con Cloud Function, obteniendo objeto completo...');
+          colaborador = await new Parse.Query(Parse.User).get(resultado.objectId);
+          console.log('14. Objeto completo obtenido');
+        } else {
+          console.log('13. Cloud Function retornó null (usuario no encontrado)');
+        }
+      } catch (cloudError) {
+        console.log('11. Cloud Function falló:', cloudError.message);
+        console.log('12. Intentando con query directa como fallback...');
+        
+        // Fallback: query directa
+        const queryUser = new Parse.Query(Parse.User);
+        queryUser.equalTo('username', emailNormalizado);
+        
+        try {
+          colaborador = await queryUser.first();
+          console.log('13. Query directa ejecutada');
+        } catch (searchError) {
+          console.error('❌ ERROR EN BÚSQUEDA:', searchError);
+          throw new Error('Error al buscar usuario: ' + searchError.message);
+        }
+      }
+      
+      console.log('15. Colaborador encontrado:', colaborador ? 'SÍ' : 'NO');
+        
+        if (colaborador) {
+          console.log('16. ID del colaborador:', colaborador.id);
+          console.log('17. Nombre del colaborador:', colaborador.get('nombre'));
+          console.log('18. Username del colaborador:', colaborador.get('username'));
+        } else {
+          console.log('16. colaborador es null o undefined');
+        }
       
       if (!colaborador) {
-        throw new Error('No se encontró un usuario con ese email');
+        console.log('19. NO SE ENCONTRÓ COLABORADOR - Lanzando error');
+        throw new Error('No se encontró un usuario registrado con ese email. El usuario debe crear una cuenta primero.');
       }
 
+      console.log('20. Verificando que no sea el mismo usuario...');
       if (colaborador.id === user.id) {
         throw new Error('No puedes agregarte a ti mismo como colaborador');
       }
+      console.log('21. Verificación: OK, no es el mismo usuario');
 
       // Verificar que no esté ya agregado
+      console.log('22. Verificando colaboradores existentes...');
       const colaboradores = huerto.get('colaboradores') || [];
+      console.log('23. Número de colaboradores actuales:', colaboradores.length);
       const yaExiste = colaboradores.some(c => c.id === colaborador.id);
+      console.log('24. ¿Ya existe?:', yaExiste);
       
       if (yaExiste) {
         throw new Error('Este usuario ya es colaborador del huerto');
       }
 
       // Agregar colaborador
+      console.log('25. Agregando colaborador al huerto...');
       huerto.addUnique('colaboradores', colaborador);
       
       // Actualizar ACL para dar permisos al colaborador
+      console.log('26. Actualizando ACL...');
       const acl = huerto.getACL();
+      console.log('27. ACL actual obtenido');
       acl.setReadAccess(colaborador.id, true);
       acl.setWriteAccess(colaborador.id, true);
       huerto.setACL(acl);
+      console.log('28. ACL actualizado en memoria');
       
+      console.log('29. Guardando huerto...');
       await huerto.save();
+      console.log('30. Huerto guardado exitosamente');
 
-      return {
+      const resultado = {
         id: colaborador.id,
         nombre: colaborador.get('nombre'),
-        email: colaborador.get('email')
+        email: colaborador.get('username')
       };
+      
+      console.log('31. Resultado:', resultado);
+      console.log('=== FIN invitarColaborador - ÉXITO ===');
+      
+      return resultado;
     } catch (error) {
-      console.error('Error al invitar colaborador:', error);
+      console.error('=== ERROR en invitarColaborador ===');
+      console.error('Tipo de error:', error.constructor.name);
+      console.error('Mensaje:', error.message);
+      console.error('Stack:', error.stack);
+      console.error('=== FIN ERROR ===');
       throw error;
     }
   },
@@ -293,6 +370,65 @@ const HuertoService = {
       return esDueno || esColaborador;
     } catch (error) {
       return false;
+    }
+  },
+
+  // Método de debug para listar todos los usuarios - VERSION SIMPLE
+  async debugListarUsuarios() {
+    try {
+      console.log('=== DEBUG: LISTANDO USUARIOS ===');
+      console.log('Intentando con query directa...');
+      
+      const query = new Parse.Query(Parse.User);
+      query.limit(100);
+      
+      let usuarios;
+      try {
+        usuarios = await query.find();
+        console.log(`✅ Query ejecutada exitosamente`);
+        console.log(`Total de usuarios encontrados: ${usuarios.length}`);
+      } catch (queryError) {
+        console.error('❌ Error en query:', queryError);
+        console.error('Tipo:', queryError.constructor.name);
+        console.error('Mensaje:', queryError.message);
+        console.error('Code:', queryError.code);
+        
+        // Mensaje más claro del problema
+        if (queryError.message && queryError.message.includes('not allowed')) {
+          console.error('\n⚠️ PROBLEMA DE PERMISOS ⚠️');
+          console.error('Los permisos de Find en la clase _User no están configurados correctamente.');
+          console.error('Ve a Back4app → Core → Browser → User → More → Security');
+          console.error('Marca: Find → requiresAuthentication');
+        }
+        
+        return [];
+      }
+      
+      if (usuarios.length === 0) {
+        console.log('⚠️ No se encontraron usuarios (la query funcionó pero retornó 0 resultados)');
+        return [];
+      }
+      
+      console.log('\n=== LISTA DE USUARIOS ===');
+      usuarios.forEach((u, index) => {
+        console.log(`\n👤 Usuario ${index + 1}:`);
+        console.log('  🆔 ObjectId:', u.id);
+        console.log('  📧 Username:', u.get('username'));
+        console.log('  ✉️  Email:', u.get('email'));
+        console.log('  👤 Nombre:', u.get('nombre'));
+        console.log('  📅 Creado:', u.get('createdAt'));
+      });
+      console.log('\n=== FIN LISTA ===\n');
+      
+      return usuarios.map(u => ({
+        id: u.id,
+        username: u.get('username'),
+        email: u.get('email'),
+        nombre: u.get('nombre')
+      }));
+    } catch (error) {
+      console.error('❌ Error general listando usuarios:', error);
+      return [];
     }
   }
 };
