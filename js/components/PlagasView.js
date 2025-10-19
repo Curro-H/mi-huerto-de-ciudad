@@ -1,25 +1,734 @@
-/**
- * Vista de Gestión de Plagas
- * Componente principal con modales y funcionalidad completa
- */
+const { useState, useMemo, useEffect } = React;
+const h = React.createElement;
 
-const { createElement: h, useState, useEffect, useMemo } = React;
-const { 
-  Sprout, Plus, Filter, AlertCircle, Bug, Droplet, 
-  Calendar, Trash2, ChevronRight, X, CheckCircle 
-} = window.Icons;
+// ============================================
+// COMPONENTE: HeaderStats
+// ============================================
+function HeaderStats({ stats }) {
+  return h('div', { className: 'plagas-header-stats' },
+    h('div', { className: 'stat-card stat-controladas' },
+      h('div', { className: 'stat-icon' }, '🟢'),
+      h('div', { className: 'stat-content' },
+        h('div', { className: 'stat-number' }, stats.controladas),
+        h('div', { className: 'stat-label' }, 'Controladas')
+      )
+    ),
+    h('div', { className: 'stat-card stat-tratamiento' },
+      h('div', { className: 'stat-icon' }, '🟡'),
+      h('div', { className: 'stat-content' },
+        h('div', { className: 'stat-number' }, stats.enTratamiento),
+        h('div', { className: 'stat-label' }, 'En Tratamiento')
+      )
+    ),
+    h('div', { className: 'stat-card stat-activas' },
+      h('div', { className: 'stat-icon' }, '🔴'),
+      h('div', { className: 'stat-content' },
+        h('div', { className: 'stat-number' }, stats.activas),
+        h('div', { className: 'stat-label' }, 'Activas')
+      )
+    )
+  );
+}
 
-function PlagasView({ 
-  plagas, 
+// ============================================
+// COMPONENTE: BarraFiltros MEJORADA
+// ============================================
+function BarraFiltros({
+  filtroEstado,
+  onFiltroEstadoChange,
+  filtroCultivo,
+  onFiltroCultivoChange,
+  filtroTipo,
+  onFiltroTipoChange,
+  mostrarResueltas,
+  onToggleResueltas,
+  cultivos
+}) {
+  const [filtrosExpanded, setFiltrosExpanded] = useState(false);
+
+  const filtrosActivosCount = [filtroCultivo, filtroTipo].filter(Boolean).length;
+
+  const tiposPlagas = [
+    { id: 'pulgon', nombre: 'Pulgón', emoji: '🐛' },
+    { id: 'mosca_blanca', nombre: 'Mosca Blanca', emoji: '🦟' },
+    { id: 'trips', nombre: 'Trips', emoji: '🦗' },
+    { id: 'arana_roja', nombre: 'Araña Roja', emoji: '🕷️' },
+    { id: 'cochinilla', nombre: 'Cochinilla', emoji: '🐚' },
+    { id: 'orugas', nombre: 'Orugas', emoji: '🐛' },
+    { id: 'caracoles', nombre: 'Caracoles/Babosas', emoji: '🐌' },
+    { id: 'nematodos', nombre: 'Nematodos', emoji: '🪱' },
+    { id: 'minador', nombre: 'Minador', emoji: '🦟' },
+    { id: 'mosca_fruta', nombre: 'Mosca de la Fruta', emoji: '🪰' },
+    { id: 'gorgojos', nombre: 'Gorgojos', emoji: '🪲' },
+    { id: 'mildiu', nombre: 'Mildiu', emoji: '🍄' },
+    { id: 'oidio', nombre: 'Oidio', emoji: '☁️' },
+    { id: 'roya', nombre: 'Roya', emoji: '🟤' },
+    { id: 'botrytis', nombre: 'Botrytis', emoji: '🦠' },
+    { id: 'otra', nombre: 'Otra', emoji: '❓' }
+  ];
+
+  return h('div', { className: 'plagas-filtros-container' },
+    h('div', { className: 'filtros-tabs-estado' },
+      h('button', {
+        className: `filtro-tab ${filtroEstado === 'todas' ? 'active' : ''}`,
+        onClick: () => onFiltroEstadoChange('todas')
+      }, 'Todas'),
+      h('button', {
+        className: `filtro-tab tab-activas ${filtroEstado === 'activa' ? 'active' : ''}`,
+        onClick: () => onFiltroEstadoChange('activa')
+      }, '🔴 Activas'),
+      h('button', {
+        className: `filtro-tab tab-tratamiento ${filtroEstado === 'en_tratamiento' ? 'active' : ''}`,
+        onClick: () => onFiltroEstadoChange('en_tratamiento')
+      }, '🟡 En Tratamiento'),
+      h('button', {
+        className: `filtro-tab tab-controladas ${filtroEstado === 'controlada' ? 'active' : ''}`,
+        onClick: () => onFiltroEstadoChange('controlada')
+      }, '🟢 Controladas')
+    ),
+
+    h('div', { className: 'filtros-expand-section' },
+      h('button', {
+        className: 'filtros-expand-button',
+        onClick: () => setFiltrosExpanded(!filtrosExpanded)
+      },
+        h(window.Icons.Filter, { size: 16, className: 'icon' }),
+        h('span', null, 'Más filtros'),
+        filtrosActivosCount > 0 && h('span', { className: 'filtros-count-badge' }, filtrosActivosCount),
+        h(filtrosExpanded ? window.Icons.ChevronUp : window.Icons.ChevronDown, { 
+          size: 16, 
+          className: 'icon-chevron' 
+        })
+      ),
+      
+      h('label', { className: 'toggle-resueltas' },
+        h('input', {
+          type: 'checkbox',
+          checked: mostrarResueltas,
+          onChange: (e) => onToggleResueltas(e.target.checked)
+        }),
+        h('span', null, 'Mostrar resueltas')
+      )
+    ),
+
+    filtrosExpanded && h('div', { className: 'filtros-pills-container' },
+      h('div', { className: 'filtros-pills-group' },
+        h('div', { className: 'filtros-pills-label' }, 'Cultivo:'),
+        h('div', { className: 'filtros-pills-list' },
+          h('button', {
+            className: `filtro-pill ${!filtroCultivo ? 'active' : ''}`,
+            onClick: () => onFiltroCultivoChange(null)
+          }, 'Todos'),
+          cultivos.map(cultivo =>
+            h('button', {
+              key: cultivo.id,
+              className: `filtro-pill ${filtroCultivo === cultivo.id ? 'active' : ''}`,
+              onClick: () => onFiltroCultivoChange(cultivo.id === filtroCultivo ? null : cultivo.id)
+            },
+              h('span', null, `${cultivo.emoji || '🌱'} ${cultivo.nombre}`)
+            )
+          )
+        )
+      ),
+
+      h('div', { className: 'filtros-pills-group' },
+        h('div', { className: 'filtros-pills-label' }, 'Tipo de plaga:'),
+        h('div', { className: 'filtros-pills-list' },
+          h('button', {
+            className: `filtro-pill ${!filtroTipo ? 'active' : ''}`,
+            onClick: () => onFiltroTipoChange(null)
+          }, 'Todos'),
+          tiposPlagas.map(tipo =>
+            h('button', {
+              key: tipo.id,
+              className: `filtro-pill ${filtroTipo === tipo.id ? 'active' : ''}`,
+              onClick: () => onFiltroTipoChange(tipo.id === filtroTipo ? null : tipo.id)
+            },
+              h('span', null, `${tipo.emoji} ${tipo.nombre}`)
+            )
+          )
+        )
+      )
+    )
+  );
+}
+
+// ============================================
+// COMPONENTE: TarjetaPlaga
+// ============================================
+function TarjetaPlaga({ plaga, cultivos, onAddTratamiento, onCambiarEstado, onEliminar, onClick }) {
+  const infoPlagas = window.PLAGAS_MALAGA;
+  const infoPlaga = infoPlagas[plaga.tipoPlaga] || { nombre: 'Desconocida', emoji: '❓' };
+
+  const cultivosAfectados = plaga.cultivosAfectados.map(cultivoId => {
+    const cultivo = cultivos.find(c => c.id === cultivoId);
+    return cultivo ? { id: cultivoId, nombre: cultivo.nombre, emoji: cultivo.emoji || '🌱' } : null;
+  }).filter(Boolean);
+
+  const diasDesde = window.PlagaService.diasDesdeDeteccion(plaga);
+  const ultimoTratamiento = plaga.tratamientos.length > 0
+    ? plaga.tratamientos[plaga.tratamientos.length - 1]
+    : null;
+
+  const estadoClasses = {
+    'activa': 'estado-activa',
+    'en_tratamiento': 'estado-tratamiento',
+    'controlada': 'estado-controlada',
+    'resuelta': 'estado-resuelta'
+  };
+
+  const estadoTextos = {
+    'activa': '🔴 Activa',
+    'en_tratamiento': '🟡 En Tratamiento',
+    'controlada': '🟢 Controlada',
+    'resuelta': '✅ Resuelta'
+  };
+
+  const handleAction = (e, callback) => {
+    e.stopPropagation();
+    callback();
+  };
+
+  return h('div', {
+    className: `plaga-card ${estadoClasses[plaga.estadoControl]}`,
+    onClick: onClick
+  },
+    h('div', { className: 'plaga-card-header' },
+      h('div', { className: 'plaga-titulo' },
+        h('span', { className: 'plaga-emoji' }, infoPlaga.emoji),
+        h('span', { className: 'plaga-nombre' }, infoPlaga.nombre)
+      ),
+      h('span', {
+        className: `plaga-estado-badge ${estadoClasses[plaga.estadoControl]}`
+      }, estadoTextos[plaga.estadoControl])
+    ),
+
+    h('div', { className: 'plaga-card-body' },
+      h('div', { className: 'plaga-info-item' },
+        h('strong', null, 'Cultivos: '),
+        cultivosAfectados.map((c, i) =>
+          h('span', { key: c.id, className: 'cultivo-tag' },
+            `${c.emoji} ${c.nombre}${i < cultivosAfectados.length - 1 ? ', ' : ''}`
+          )
+        )
+      ),
+
+      h('div', { className: 'plaga-info-item' },
+        h('strong', null, 'Hace '),
+        `${diasDesde} días`
+      ),
+
+      ultimoTratamiento && h('div', { className: 'plaga-info-item ultimo-tratamiento' },
+        h('strong', null, 'Último tratamiento: '),
+        ultimoTratamiento.metodo
+      )
+    ),
+
+    h('div', { className: 'plaga-card-actions' },
+      h('button', {
+        className: 'btn-icon-small',
+        onClick: (e) => handleAction(e, () => onAddTratamiento(plaga)),
+        title: 'Añadir tratamiento'
+      }, h(window.Icons.Plus, { size: 16 })),
+
+      plaga.estadoControl === 'en_tratamiento' && h('button', {
+        className: 'btn-small btn-success',
+        onClick: (e) => handleAction(e, () => onCambiarEstado(plaga.id, 'controlada'))
+      }, 'Controlada'),
+
+      plaga.estadoControl !== 'resuelta' && h('button', {
+        className: 'btn-small btn-primary',
+        onClick: (e) => handleAction(e, () => onCambiarEstado(plaga.id, 'resuelta'))
+      }, 'Resolver'),
+
+      h('button', {
+        className: 'btn-icon-small btn-danger',
+        onClick: (e) => handleAction(e, () => {
+          if (confirm('¿Eliminar esta plaga permanentemente?')) {
+            onEliminar(plaga.id);
+          }
+        }),
+        title: 'Eliminar'
+      }, h(window.Icons.Trash2, { size: 16 }))
+    )
+  );
+}
+
+// ============================================
+// MODAL: Nueva Plaga
+// ============================================
+function ModalNuevaPlaga({ cultivos, cultivoPreseleccionado, onGuardar, onCerrar }) {
+  const [tipoPlaga, setTipoPlaga] = useState('');
+  const [cultivosSeleccionados, setCultivosSeleccionados] = useState([]);
+  const [severidad, setSeveridad] = useState('leve');
+  const [notas, setNotas] = useState('');
+
+  const infoPlagas = window.PLAGAS_MALAGA;
+  const infoPlaga = tipoPlaga ? infoPlagas[tipoPlaga] : null;
+
+  useEffect(() => {
+    if (cultivoPreseleccionado) {
+      setCultivosSeleccionados([cultivoPreseleccionado]);
+    }
+  }, [cultivoPreseleccionado]);
+
+  const handleToggleCultivo = (cultivoId) => {
+    setCultivosSeleccionados(prev =>
+      prev.includes(cultivoId)
+        ? prev.filter(id => id !== cultivoId)
+        : [...prev, cultivoId]
+    );
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!tipoPlaga || cultivosSeleccionados.length === 0) {
+      alert('Por favor completa todos los campos requeridos');
+      return;
+    }
+
+    await onGuardar({
+      tipoPlaga,
+      cultivosAfectados: cultivosSeleccionados,
+      severidad,
+      notas,
+      estadoControl: 'activa',
+      fechaDeteccion: new Date(),
+      tratamientos: []
+    });
+  };
+
+  return h('div', { className: 'modal-overlay', onClick: onCerrar },
+    h('div', { className: 'modal', onClick: (e) => e.stopPropagation() },
+      h('div', { className: 'modal-header' },
+        h('h2', null, '🐛 Reportar Nueva Plaga'),
+        h('button', {
+          className: 'modal-close',
+          onClick: onCerrar
+        }, h(window.Icons.X, { size: 20 }))
+      ),
+
+      h('form', { onSubmit: handleSubmit },
+        h('div', { className: 'modal-body' },
+          h('div', { className: 'form-group' },
+            h('label', { className: 'form-label required' }, 'Tipo de plaga'),
+            h('select', {
+              className: 'form-select',
+              value: tipoPlaga,
+              onChange: (e) => setTipoPlaga(e.target.value),
+              required: true
+            },
+              h('option', { value: '' }, 'Selecciona un tipo...'),
+              Object.keys(infoPlagas).map(key =>
+                h('option', { key, value: key },
+                  `${infoPlagas[key].emoji} ${infoPlagas[key].nombre}`
+                )
+              )
+            )
+          ),
+
+          infoPlaga && h('div', { className: 'info-box' },
+            h('div', { className: 'info-box-header' },
+              h(window.Icons.Lightbulb, { size: 16 }),
+              h('span', { className: 'info-box-title' }, 'Tratamientos recomendados')
+            ),
+            h('div', { className: 'info-box-content' },
+              h('p', null, infoPlaga.descripcion),
+              h('ul', { className: 'info-box-list' },
+                infoPlaga.tratamientos.slice(0, 5).map((t, i) =>
+                  h('li', { key: i }, t)
+                )
+              )
+            )
+          ),
+
+          h('div', { className: 'form-group' },
+            h('label', { className: 'form-label required' }, 
+              cultivoPreseleccionado 
+                ? `Cultivos afectados (${cultivos.find(c => c.id === cultivoPreseleccionado)?.nombre} preseleccionado)`
+                : 'Cultivos afectados'
+            ),
+            h('div', { className: 'checkbox-group' },
+              cultivos.map(cultivo =>
+                h('div', { key: cultivo.id, className: 'checkbox-item' },
+                  h('input', {
+                    type: 'checkbox',
+                    id: `cultivo-${cultivo.id}`,
+                    checked: cultivosSeleccionados.includes(cultivo.id),
+                    onChange: () => handleToggleCultivo(cultivo.id)
+                  }),
+                  h('label', { htmlFor: `cultivo-${cultivo.id}` },
+                    `${cultivo.emoji || '🌱'} ${cultivo.nombre}`
+                  )
+                )
+              )
+            )
+          ),
+
+          h('div', { className: 'form-group' },
+            h('label', { className: 'form-label required' }, 'Severidad'),
+            h('div', { className: 'radio-group' },
+              h('div', { className: 'radio-item' },
+                h('input', {
+                  type: 'radio',
+                  id: 'sev-leve',
+                  name: 'severidad',
+                  value: 'leve',
+                  checked: severidad === 'leve',
+                  onChange: (e) => setSeveridad(e.target.value)
+                }),
+                h('label', { htmlFor: 'sev-leve' },
+                  h('strong', null, '🟢 Leve'), ': Pocos individuos, daño mínimo'
+                )
+              ),
+              h('div', { className: 'radio-item' },
+                h('input', {
+                  type: 'radio',
+                  id: 'sev-moderada',
+                  name: 'severidad',
+                  value: 'moderada',
+                  checked: severidad === 'moderada',
+                  onChange: (e) => setSeveridad(e.target.value)
+                }),
+                h('label', { htmlFor: 'sev-moderada' },
+                  h('strong', null, '🟡 Moderada'), ': Población visible, daño notable'
+                )
+              ),
+              h('div', { className: 'radio-item' },
+                h('input', {
+                  type: 'radio',
+                  id: 'sev-grave',
+                  name: 'severidad',
+                  value: 'grave',
+                  checked: severidad === 'grave',
+                  onChange: (e) => setSeveridad(e.target.value)
+                }),
+                h('label', { htmlFor: 'sev-grave' },
+                  h('strong', null, '🔴 Grave'), ': Infestación, riesgo de pérdida'
+                )
+              )
+            )
+          ),
+
+          h('div', { className: 'form-group' },
+            h('label', { className: 'form-label' }, 'Notas iniciales'),
+            h('textarea', {
+              className: 'form-textarea',
+              value: notas,
+              onChange: (e) => setNotas(e.target.value),
+              placeholder: 'Observaciones adicionales...'
+            })
+          )
+        ),
+
+        h('div', { className: 'modal-footer' },
+          h('button', {
+            type: 'button',
+            className: 'btn',
+            onClick: onCerrar
+          }, 'Cancelar'),
+          h('button', {
+            type: 'submit',
+            className: 'btn btn-primary'
+          }, h(window.Icons.AlertTriangle, { size: 16 }), ' Reportar Plaga')
+        )
+      )
+    )
+  );
+}
+
+// ============================================
+// MODAL: Registrar Tratamiento
+// ============================================
+function ModalTratamiento({ plaga, onGuardar, onCerrar }) {
+  const [metodo, setMetodo] = useState('');
+  const [otroMetodo, setOtroMetodo] = useState('');
+  const [notas, setNotas] = useState('');
+  const [mejoraObservada, setMejoraObservada] = useState(false);
+
+  const metodosTratamiento = window.METODOS_TRATAMIENTO || [
+    'Jabón potásico',
+    'Aceite de neem',
+    'Purín de ortiga',
+    'Purín de ajo',
+    'Bacillus thuringiensis',
+    'Trampas cromáticas amarillas',
+    'Trampas cromáticas azules',
+    'Tierra de diatomeas',
+    'Recolección manual',
+    'Control biológico (mariquitas)',
+    'Control biológico (crisopas)',
+    'Fungicida de cobre',
+    'Azufre',
+    'Bicarbonato sódico',
+    'Infusión de cola de caballo',
+    'Eliminación de partes afectadas',
+    'Mejora de ventilación',
+    'Reducción de humedad',
+    'Rotación de cultivos',
+    'Otro'
+  ];
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!metodo) {
+      alert('Por favor selecciona un método de tratamiento');
+      return;
+    }
+
+    const metodoFinal = metodo === 'Otro' && otroMetodo ? otroMetodo : metodo;
+
+    await onGuardar({
+      fecha: new Date(),
+      metodo: metodoFinal,
+      notas,
+      mejoraObservada
+    });
+  };
+
+  return h('div', { className: 'modal-overlay', onClick: onCerrar },
+    h('div', { className: 'modal', onClick: (e) => e.stopPropagation() },
+      h('div', { className: 'modal-header' },
+        h('h2', null, '💊 Registrar Tratamiento'),
+        h('button', {
+          className: 'modal-close',
+          onClick: onCerrar
+        }, h(window.Icons.X, { size: 20 }))
+      ),
+
+      h('form', { onSubmit: handleSubmit },
+        h('div', { className: 'modal-body' },
+          h('div', { className: 'form-group' },
+            h('label', { className: 'form-label required' }, 'Método aplicado'),
+            h('select', {
+              className: 'form-select',
+              value: metodo,
+              onChange: (e) => setMetodo(e.target.value),
+              required: true
+            },
+              h('option', { value: '' }, 'Selecciona un método...'),
+              metodosTratamiento.map(m =>
+                h('option', { key: m, value: m }, m)
+              )
+            )
+          ),
+
+          metodo === 'Otro' && h('div', { className: 'form-group' },
+            h('label', { className: 'form-label required' }, 'Especifica el método'),
+            h('input', {
+              type: 'text',
+              className: 'form-input',
+              value: otroMetodo,
+              onChange: (e) => setOtroMetodo(e.target.value),
+              placeholder: 'Describe el método aplicado...',
+              required: true
+            })
+          ),
+
+          h('div', { className: 'form-group' },
+            h('label', { className: 'form-label' }, 'Notas sobre la aplicación'),
+            h('textarea', {
+              className: 'form-textarea',
+              value: notas,
+              onChange: (e) => setNotas(e.target.value),
+              placeholder: 'Detalles de cómo/dónde se aplicó...'
+            })
+          ),
+
+          h('div', { className: 'form-group' },
+            h('div', { className: 'checkbox-item' },
+              h('input', {
+                type: 'checkbox',
+                id: 'mejora',
+                checked: mejoraObservada,
+                onChange: (e) => setMejoraObservada(e.target.checked)
+              }),
+              h('label', { htmlFor: 'mejora' },
+                '✅ ¿Mejora observada después del tratamiento?'
+              )
+            )
+          )
+        ),
+
+        h('div', { className: 'modal-footer' },
+          h('button', {
+            type: 'button',
+            className: 'btn',
+            onClick: onCerrar
+          }, 'Cancelar'),
+          h('button', {
+            type: 'submit',
+            className: 'btn btn-primary'
+          }, h(window.Icons.Check, { size: 16 }), ' Registrar')
+        )
+      )
+    )
+  );
+}
+
+// ============================================
+// MODAL: Detalle de Plaga
+// ============================================
+function ModalDetalle({ plaga, cultivos, onAddTratamiento, onCambiarEstado, onEliminar, onCerrar }) {
+  const infoPlagas = window.PLAGAS_MALAGA;
+  const infoPlaga = infoPlagas[plaga.tipoPlaga] || { nombre: 'Desconocida', emoji: '❓' };
+
+  const cultivosAfectados = plaga.cultivosAfectados.map(cultivoId => {
+    const cultivo = cultivos.find(c => c.id === cultivoId);
+    return cultivo ? { id: cultivoId, nombre: cultivo.nombre, emoji: cultivo.emoji || '🌱' } : null;
+  }).filter(Boolean);
+
+  const diasDesde = window.PlagaService.diasDesdeDeteccion(plaga);
+
+  const estadoTextos = {
+    'activa': '🔴 Activa',
+    'en_tratamiento': '🟡 En Tratamiento',
+    'controlada': '🟢 Controlada',
+    'resuelta': '✅ Resuelta'
+  };
+
+  const severidadTextos = {
+    'leve': '🟢 Leve',
+    'moderada': '🟡 Moderada',
+    'grave': '🔴 Grave'
+  };
+
+  return h('div', { className: 'modal-overlay', onClick: onCerrar },
+    h('div', { className: 'modal modal-large', onClick: (e) => e.stopPropagation() },
+      h('div', { className: 'modal-header' },
+        h('h2', null, `${infoPlaga.emoji} ${infoPlaga.nombre}`),
+        h('button', {
+          className: 'modal-close',
+          onClick: onCerrar
+        }, h(window.Icons.X, { size: 20 }))
+      ),
+
+      h('div', { className: 'modal-body' },
+        h('div', { className: 'detalle-seccion' },
+          h('h3', null, 'Información General'),
+          h('div', { className: 'detalle-grid' },
+            h('div', { className: 'detalle-item' },
+              h('strong', null, 'Estado:'),
+              h('span', null, estadoTextos[plaga.estadoControl])
+            ),
+            h('div', { className: 'detalle-item' },
+              h('strong', null, 'Severidad:'),
+              h('span', null, severidadTextos[plaga.severidad])
+            ),
+            h('div', { className: 'detalle-item' },
+              h('strong', null, 'Detectada hace:'),
+              h('span', null, `${diasDesde} días`)
+            ),
+            h('div', { className: 'detalle-item' },
+              h('strong', null, 'Fecha de detección:'),
+              h('span', null, new Date(plaga.fechaDeteccion).toLocaleDateString())
+            )
+          ),
+
+          h('div', { className: 'detalle-item' },
+            h('strong', null, 'Cultivos afectados:'),
+            h('div', { className: 'cultivos-list' },
+              cultivosAfectados.map(c =>
+                h('span', { key: c.id, className: 'cultivo-badge' },
+                  `${c.emoji} ${c.nombre}`
+                )
+              )
+            )
+          ),
+
+          plaga.notas && h('div', { className: 'detalle-item' },
+            h('strong', null, 'Notas:'),
+            h('p', null, plaga.notas)
+          )
+        ),
+
+        plaga.tratamientos.length > 0 && h('div', { className: 'detalle-seccion' },
+          h('h3', null, `📋 Historial de Tratamientos (${plaga.tratamientos.length})`),
+          h('div', { className: 'tratamientos-timeline' },
+            plaga.tratamientos.slice().reverse().map((t, i) =>
+              h('div', { key: i, className: 'timeline-item' },
+                h('div', { className: 'timeline-header' },
+                  h('span', { className: 'timeline-date' },
+                    `📅 ${new Date(t.fecha).toLocaleDateString()}`
+                  ),
+                  t.mejoraObservada && h('span', { className: 'timeline-mejora' },
+                    h(window.Icons.CheckCircle, { size: 14 }),
+                    ' Mejora observada'
+                  )
+                ),
+                h('div', { className: 'timeline-metodo' }, t.metodo),
+                t.notas && h('div', { className: 'timeline-notas' }, `"${t.notas}"`)
+              )
+            )
+          )
+        ),
+
+        plaga.tratamientos.length === 0 && h('div', { className: 'detalle-seccion' },
+          h('p', { style: { color: '#9ca3af', fontStyle: 'italic' } },
+            'Aún no se han registrado tratamientos para esta plaga.'
+          )
+        )
+      ),
+
+      h('div', { className: 'modal-footer' },
+        h('div', { style: { display: 'flex', gap: '0.5rem', flexWrap: 'wrap' } },
+          h('button', {
+            className: 'btn btn-primary',
+            onClick: onAddTratamiento
+          }, h(window.Icons.Plus, { size: 16 }), ' Añadir Tratamiento'),
+
+          plaga.estadoControl === 'en_tratamiento' && h('button', {
+            className: 'btn btn-success',
+            onClick: () => {
+              if (confirm('¿Marcar esta plaga como controlada?')) {
+                onCambiarEstado(plaga.id, 'controlada');
+                onCerrar();
+              }
+            }
+          }, h(window.Icons.CheckCircle, { size: 16 }), ' Marcar Controlada'),
+
+          plaga.estadoControl !== 'resuelta' && h('button', {
+            className: 'btn btn-primary',
+            onClick: () => {
+              if (confirm('¿Marcar esta plaga como resuelta? Se archivará.')) {
+                onCambiarEstado(plaga.id, 'resuelta');
+                onCerrar();
+              }
+            }
+          }, h(window.Icons.Check, { size: 16 }), ' Resolver'),
+
+          h('button', {
+            className: 'btn btn-danger',
+            onClick: () => {
+              if (confirm('¿Eliminar esta plaga permanentemente?')) {
+                onEliminar(plaga.id);
+                onCerrar();
+              }
+            }
+          }, h(window.Icons.Trash2, { size: 16 }), ' Eliminar')
+        ),
+        h('button', {
+          className: 'btn',
+          onClick: onCerrar
+        }, 'Cerrar')
+      )
+    )
+  );
+}
+
+// ============================================
+// COMPONENTE PRINCIPAL: PlagasView
+// ============================================
+function PlagasView({
+  plagas,
   cultivos,
-  cultivoPreseleccionado, // ← NUEVO
+  cultivoPreseleccionado,
   onAgregarPlaga,
   onAddTratamiento,
   onCambiarEstado,
   onEliminar,
-  onClearPreseleccion // ← NUEVO
+  onClearPreseleccion
 }) {
-  // Estados
   const [filtroEstado, setFiltroEstado] = useState('todas');
   const [filtroCultivo, setFiltroCultivo] = useState(null);
   const [filtroTipo, setFiltroTipo] = useState(null);
@@ -28,9 +737,9 @@ function PlagasView({
   const [modalTratamiento, setModalTratamiento] = useState(null);
   const [modalDetalle, setModalDetalle] = useState(null);
 
-  // ← NUEVO: Abrir modal automáticamente si hay cultivo preseleccionado
+  // Auto-abrir modal si hay cultivo preseleccionado
   useEffect(() => {
-    if (cultivoPreseleccionado && !modalNueva) {
+    if (cultivoPreseleccionado) {
       setModalNueva(true);
     }
   }, [cultivoPreseleccionado]);
@@ -39,756 +748,119 @@ function PlagasView({
   const stats = useMemo(() => ({
     activas: plagas.filter(p => p.estadoControl === 'activa').length,
     enTratamiento: plagas.filter(p => p.estadoControl === 'en_tratamiento').length,
-    controladas: plagas.filter(p => p.estadoControl === 'controlada').length,
-    resueltas: plagas.filter(p => p.estadoControl === 'resuelta').length
+    controladas: plagas.filter(p => p.estadoControl === 'controlada').length
   }), [plagas]);
 
-  // Plagas filtradas
+  // Filtrado de plagas
   const plagasFiltradas = useMemo(() => {
     let resultado = plagas;
 
-    // Filtrar por resueltas
-    if (!mostrarResueltas) {
-      resultado = resultado.filter(p => p.estadoControl !== 'resuelta');
-    }
-
-    // Filtrar por estado
+    // Filtro por estado
     if (filtroEstado !== 'todas') {
       resultado = resultado.filter(p => p.estadoControl === filtroEstado);
     }
 
-    // Filtrar por cultivo
-    if (filtroCultivo) {
-      resultado = resultado.filter(p => 
-        p.cultivosAfectados.some(c => c.id === filtroCultivo)
-      );
+    // No mostrar resueltas por defecto
+    if (!mostrarResueltas) {
+      resultado = resultado.filter(p => p.estadoControl !== 'resuelta');
     }
 
-    // Filtrar por tipo
+    // Filtro por cultivo
+    if (filtroCultivo) {
+      resultado = resultado.filter(p => p.cultivosAfectados.includes(filtroCultivo));
+    }
+
+    // Filtro por tipo
     if (filtroTipo) {
       resultado = resultado.filter(p => p.tipoPlaga === filtroTipo);
     }
 
     // Ordenar por prioridad de estado
-    const ordenEstados = { activa: 1, en_tratamiento: 2, controlada: 3, resuelta: 4 };
-    resultado.sort((a, b) => {
-      const ordenA = ordenEstados[a.estadoControl];
-      const ordenB = ordenEstados[b.estadoControl];
-      if (ordenA !== ordenB) return ordenA - ordenB;
-      return b.fechaDeteccion - a.fechaDeteccion;
-    });
-
-    return resultado;
+    const prioridades = { activa: 1, en_tratamiento: 2, controlada: 3, resuelta: 4 };
+    return resultado.sort((a, b) => prioridades[a.estadoControl] - prioridades[b.estadoControl]);
   }, [plagas, filtroEstado, filtroCultivo, filtroTipo, mostrarResueltas]);
 
   return h('div', { className: 'plagas-view' },
-    // Header con estadísticas
-    h(HeaderStats, { stats }),
-    
-    // Barra de filtros
-    h(BarraFiltros, {
-      filtroEstado,
-      setFiltroEstado,
-      filtroCultivo,
-      setFiltroCultivo,
-      filtroTipo,
-      setFiltroTipo,
-      mostrarResueltas,
-      setMostrarResueltas,
-      cultivos
-    }),
-
-    // Botón principal
-    h('div', { className: 'view-actions' },
+    h('div', { className: 'view-header' },
+      h('h1', null, '🦗 Control de Plagas'),
       h('button', {
         className: 'btn btn-primary',
         onClick: () => setModalNueva(true)
-      },
-        h(Plus, { size: 18 }),
-        h('span', null, 'Reportar Plaga')
-      )
+      }, h(window.Icons.Plus, { size: 20 }), ' Reportar Plaga')
     ),
 
-    // Lista de plagas
-    h('div', { className: 'plagas-grid' },
-      plagasFiltradas.length === 0 
-        ? h('div', { className: 'info-box' },
-            h('div', { className: 'info-box-header' },
-              h(AlertCircle, { size: 20 }),
-              h('span', null, 'No hay plagas')
-            ),
-            h('p', { className: 'info-box-content' },
-              filtroEstado !== 'todas' || filtroCultivo || filtroTipo
-                ? 'No se encontraron plagas con los filtros aplicados'
-                : '¡Genial! No hay plagas reportadas en este huerto'
-            )
-          )
-        : plagasFiltradas.map(plaga => 
+    h(HeaderStats, { stats }),
+
+    h(BarraFiltros, {
+      filtroEstado,
+      onFiltroEstadoChange: setFiltroEstado,
+      filtroCultivo,
+      onFiltroCultivoChange: setFiltroCultivo,
+      filtroTipo,
+      onFiltroTipoChange: setFiltroTipo,
+      mostrarResueltas,
+      onToggleResueltas: setMostrarResueltas,
+      cultivos
+    }),
+
+    plagasFiltradas.length === 0
+      ? h('div', { className: 'empty-state' },
+          h(window.Icons.Bug, { size: 48 }),
+          h('p', null, 'No hay plagas registradas con estos filtros')
+        )
+      : h('div', { className: 'plagas-grid' },
+          plagasFiltradas.map(plaga =>
             h(TarjetaPlaga, {
               key: plaga.id,
               plaga,
-              onVerDetalle: () => setModalDetalle(plaga),
+              cultivos,
               onAddTratamiento: () => setModalTratamiento(plaga),
               onCambiarEstado,
-              onEliminar
+              onEliminar,
+              onClick: () => setModalDetalle(plaga)
             })
           )
-    ),
+        ),
 
-    // Modales
+    // MODALES
     modalNueva && h(ModalNuevaPlaga, {
       cultivos,
-      cultivoPreseleccionado, // ← NUEVO: pasar cultivo
-      onClose: () => {
+      cultivoPreseleccionado,
+      onGuardar: async (plagaData) => {
+        await onAgregarPlaga(plagaData);
         setModalNueva(false);
-        if (onClearPreseleccion) onClearPreseleccion(); // ← NUEVO: limpiar al cerrar
+        onClearPreseleccion();
       },
-      onSubmit: onAgregarPlaga
+      onCerrar: () => {
+        setModalNueva(false);
+        onClearPreseleccion();
+      }
     }),
 
     modalTratamiento && h(ModalTratamiento, {
       plaga: modalTratamiento,
-      onClose: () => setModalTratamiento(null),
-      onSubmit: onAddTratamiento
+      onGuardar: async (tratamientoData) => {
+        await onAddTratamiento(modalTratamiento.id, tratamientoData);
+        setModalTratamiento(null);
+      },
+      onCerrar: () => setModalTratamiento(null)
     }),
 
     modalDetalle && h(ModalDetalle, {
       plaga: modalDetalle,
-      onClose: () => setModalDetalle(null),
+      cultivos,
       onAddTratamiento: () => {
-        setModalDetalle(null);
         setModalTratamiento(modalDetalle);
+        setModalDetalle(null);
       },
       onCambiarEstado,
       onEliminar: (id) => {
-        setModalDetalle(null);
         onEliminar(id);
-      }
+        setModalDetalle(null);
+      },
+      onCerrar: () => setModalDetalle(null)
     })
   );
 }
 
-// ============ SUB-COMPONENTES ============
-
-function HeaderStats({ stats }) {
-  return h('div', { className: 'plagas-stats' },
-    h('div', { className: 'stat-item stat-controlada' },
-      h('span', { className: 'stat-emoji' }, '🟢'),
-      h('span', { className: 'stat-value' }, stats.controladas),
-      h('span', { className: 'stat-label' }, 'Controladas')
-    ),
-    h('div', { className: 'stat-item stat-tratamiento' },
-      h('span', { className: 'stat-emoji' }, '🟡'),
-      h('span', { className: 'stat-value' }, stats.enTratamiento),
-      h('span', { className: 'stat-label' }, 'En tratamiento')
-    ),
-    h('div', { className: 'stat-item stat-activa' },
-      h('span', { className: 'stat-emoji' }, '🔴'),
-      h('span', { className: 'stat-value' }, stats.activas),
-      h('span', { className: 'stat-label' }, 'Activas')
-    )
-  );
-}
-
-function BarraFiltros({ 
-  filtroEstado, setFiltroEstado,
-  filtroCultivo, setFiltroCultivo,
-  filtroTipo, setFiltroTipo,
-  mostrarResueltas, setMostrarResueltas,
-  cultivos
-}) {
-  const tiposPlaga = Object.keys(window.PLAGAS_MALAGA);
-
-  return h('div', { className: 'filtros-container' },
-    h('div', { className: 'filtros-row' },
-      // Filtro por estado
-      h('div', { className: 'filtro-group' },
-        h('label', null, 'Estado'),
-        h('select', {
-          value: filtroEstado,
-          onChange: (e) => setFiltroEstado(e.target.value),
-          className: 'filter-select'
-        },
-          h('option', { value: 'todas' }, 'Todas'),
-          h('option', { value: 'activa' }, '🔴 Activas'),
-          h('option', { value: 'en_tratamiento' }, '🟡 En tratamiento'),
-          h('option', { value: 'controlada' }, '🟢 Controladas')
-        )
-      ),
-
-      // Filtro por cultivo
-      h('div', { className: 'filtro-group' },
-        h('label', null, 'Cultivo'),
-        h('select', {
-          value: filtroCultivo || '',
-          onChange: (e) => setFiltroCultivo(e.target.value || null),
-          className: 'filter-select'
-        },
-          h('option', { value: '' }, 'Todos los cultivos'),
-          cultivos.map(c => 
-            h('option', { key: c.id, value: c.id }, `${c.nombre} - ${c.parcela}`)
-          )
-        )
-      ),
-
-      // Filtro por tipo
-      h('div', { className: 'filtro-group' },
-        h('label', null, 'Tipo de plaga'),
-        h('select', {
-          value: filtroTipo || '',
-          onChange: (e) => setFiltroTipo(e.target.value || null),
-          className: 'filter-select'
-        },
-          h('option', { value: '' }, 'Todos los tipos'),
-          tiposPlaga.map(tipo => {
-            const info = window.PLAGAS_MALAGA[tipo];
-            return h('option', { key: tipo, value: tipo }, 
-              `${info.emoji} ${info.nombre}`
-            );
-          })
-        )
-      )
-    ),
-
-    // Toggle mostrar resueltas
-    h('div', { className: 'filtro-toggle' },
-      h('label', { className: 'toggle-label' },
-        h('input', {
-          type: 'checkbox',
-          checked: mostrarResueltas,
-          onChange: (e) => setMostrarResueltas(e.target.checked)
-        }),
-        h('span', null, 'Mostrar historial (plagas resueltas)')
-      )
-    )
-  );
-}
-
-function TarjetaPlaga({ plaga, onVerDetalle, onAddTratamiento, onCambiarEstado, onEliminar }) {
-  const infoCatalogo = window.PlagaService.getInfoTipo(plaga.tipoPlaga);
-  const diasActiva = window.PlagaService.diasDesdeDeteccion(plaga);
-  const estadoInfo = window.ESTADOS_PLAGA[plaga.estadoControl];
-  const ultimoTratamiento = plaga.tratamientos.length > 0 
-    ? plaga.tratamientos[plaga.tratamientos.length - 1]
-    : null;
-
-  // ← NUEVO: Determinar si la tarjeta debe ser clickeable
-  const esResuelta = plaga.estadoControl === 'resuelta';
-
-  return h('div', { 
-    className: `plaga-card estado-${plaga.estadoControl}`,
-    onClick: () => onVerDetalle(), // ← NUEVO: Click en toda la tarjeta
-    style: { cursor: 'pointer' },
-    title: 'Click para ver detalles'
-  },
-    // Header
-    h('div', { 
-      className: 'plaga-card-header',
-      onClick: (e) => e.stopPropagation() // ← NUEVO: Evitar propagación en header
-    },
-      h('div', { className: 'plaga-title' },
-        h('span', { className: 'plaga-emoji' }, infoCatalogo.emoji),
-        h('h3', null, infoCatalogo.nombre)
-      ),
-      h('span', { 
-        className: `estado-badge estado-${plaga.estadoControl}` 
-      }, 
-        estadoInfo.emoji,
-        ' ',
-        estadoInfo.label
-      )
-    ),
-
-    // Cultivos afectados
-    h('div', { className: 'plaga-cultivos' },
-      h(Sprout, { size: 16 }),
-      h('span', null, 
-        plaga.cultivosAfectados.map(c => `${c.nombre} (${c.parcela})`).join(', ')
-      )
-    ),
-
-    // Info adicional
-    h('div', { className: 'plaga-info' },
-      h('div', { className: 'info-item' },
-        h(Calendar, { size: 14 }),
-        h('span', null, `Hace ${diasActiva} día${diasActiva !== 1 ? 's' : ''}`)
-      ),
-      ultimoTratamiento && h('div', { className: 'info-item' },
-        h(Droplet, { size: 14 }),
-        h('span', null, `Último: ${ultimoTratamiento.metodo}`)
-      )
-    ),
-
-    // Acciones - NUEVO: Siempre visible y mejorado
-    h('div', { 
-      className: 'plaga-actions',
-      onClick: (e) => e.stopPropagation() // ← NUEVO: Evitar propagación en acciones
-    },
-      // Botón añadir tratamiento
-      h('button', {
-        className: 'btn-icon btn-action',
-        onClick: (e) => {
-          e.stopPropagation();
-          onAddTratamiento();
-        },
-        title: 'Añadir tratamiento',
-        disabled: esResuelta
-      },
-        h(Plus, { size: 16 })
-      ),
-      
-      // Botón cambiar a controlada (solo si está en tratamiento)
-      plaga.estadoControl === 'en_tratamiento' && h('button', {
-        className: 'btn-text btn-success btn-compact',
-        onClick: (e) => {
-          e.stopPropagation();
-          onCambiarEstado(plaga.id, 'controlada');
-        },
-        title: 'Marcar como controlada'
-      }, 
-        h(CheckCircle, { size: 14 }),
-        ' Controlada'
-      ),
-
-      // Botón resolver - SIEMPRE VISIBLE (excepto si ya está resuelta)
-      !esResuelta && h('button', {
-        className: 'btn-text btn-resolver btn-compact',
-        onClick: (e) => {
-          e.stopPropagation();
-          if (confirm('¿Marcar esta plaga como resuelta? Se archivará en el historial.')) {
-            onCambiarEstado(plaga.id, 'resuelta');
-          }
-        },
-        title: 'Resolver plaga'
-      }, 
-        h(CheckCircle, { size: 14 }),
-        ' Resolver'
-      ),
-      
-      // Botón eliminar
-      h('button', {
-        className: 'btn-icon btn-danger',
-        onClick: (e) => {
-          e.stopPropagation();
-          if (confirm('¿Eliminar esta plaga?')) {
-            onEliminar(plaga.id);
-          }
-        },
-        title: 'Eliminar'
-      },
-        h(Trash2, { size: 16 })
-      )
-    )
-  );
-}
-
-// ============ MODALES ============
-
-function ModalNuevaPlaga({ cultivos, cultivoPreseleccionado, onClose, onSubmit }) {
-  const [formData, setFormData] = useState({
-    tipoPlaga: '',
-    cultivosIds: [],
-    severidad: '',
-    notas: ''
-  });
-  const [loading, setLoading] = useState(false);
-
-  // ← NUEVO: useEffect para preseleccionar cultivo cuando cambia
-  useEffect(() => {
-    if (cultivoPreseleccionado) {
-      setFormData(prev => ({
-        ...prev,
-        cultivosIds: [cultivoPreseleccionado.id]
-      }));
-    }
-  }, [cultivoPreseleccionado]);
-
-  const infoCatalogo = formData.tipoPlaga 
-    ? window.PlagaService.getInfoTipo(formData.tipoPlaga)
-    : null;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!formData.tipoPlaga || formData.cultivosIds.length === 0 || !formData.severidad) {
-      alert('Por favor completa todos los campos requeridos');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await onSubmit(formData);
-      onClose();
-    } catch (error) {
-      alert('Error al crear plaga: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleCultivo = (cultivoId) => {
-    setFormData(prev => ({
-      ...prev,
-      cultivosIds: prev.cultivosIds.includes(cultivoId)
-        ? prev.cultivosIds.filter(id => id !== cultivoId)
-        : [...prev.cultivosIds, cultivoId]
-    }));
-  };
-
-  return h('div', { className: 'modal-overlay', onClick: onClose },
-    h('div', { 
-      className: 'modal-content modal-large',
-      onClick: (e) => e.stopPropagation()
-    },
-      h('div', { className: 'modal-header' },
-        h('h2', null, h(Bug, { size: 24 }), ' Reportar Nueva Plaga'),
-        h('button', { className: 'btn-close', onClick: onClose },
-          h(X, { size: 20 })
-        )
-      ),
-
-      h('form', { onSubmit: handleSubmit },
-        h('div', { className: 'modal-body' },
-          
-          // Tipo de plaga
-          h('div', { className: 'form-group' },
-            h('label', null, 'Tipo de plaga *'),
-            h('select', {
-              value: formData.tipoPlaga,
-              onChange: (e) => setFormData(prev => ({ ...prev, tipoPlaga: e.target.value })),
-              required: true
-            },
-              h('option', { value: '' }, 'Selecciona el tipo de plaga'),
-              Object.entries(window.PLAGAS_MALAGA).map(([key, info]) =>
-                h('option', { key, value: key }, `${info.emoji} ${info.nombre}`)
-              )
-            )
-          ),
-
-          // Sugerencias de tratamiento
-          infoCatalogo && h('div', { className: 'info-box info-box-tratamientos' },
-            h('div', { className: 'info-box-header' },
-              h(AlertCircle, { size: 18 }),
-              h('strong', null, '💡 Tratamientos recomendados')
-            ),
-            h('div', { className: 'info-box-content' },
-              h('p', { className: 'text-small' }, infoCatalogo.descripcion),
-              h('ul', { className: 'tratamientos-list' },
-                infoCatalogo.tratamientos.slice(0, 5).map((t, i) =>
-                  h('li', { key: i }, t)
-                )
-              )
-            )
-          ),
-
-          // Cultivos afectados
-          h('div', { className: 'form-group' },
-            h('label', null, 'Cultivo(s) afectado(s) *'),
-            cultivoPreseleccionado && h('div', { 
-              className: 'info-box',
-              style: { marginBottom: 'var(--space-3)', padding: 'var(--space-3)' }
-            },
-              h('p', { style: { margin: 0, fontSize: '0.875rem' } },
-                '🌱 Reportando plaga para: ',
-                h('strong', null, `${cultivoPreseleccionado.nombre} - ${cultivoPreseleccionado.parcela}`)
-              )
-            ),
-            h('div', { className: 'cultivos-checkbox-group' },
-              cultivos.length === 0 
-                ? h('p', { className: 'text-muted' }, 'No hay cultivos en este huerto')
-                : cultivos.map(cultivo =>
-                    h('label', { key: cultivo.id, className: 'checkbox-label' },
-                      h('input', {
-                        type: 'checkbox',
-                        checked: formData.cultivosIds.includes(cultivo.id),
-                        onChange: () => toggleCultivo(cultivo.id)
-                      }),
-                      h('span', null, `${cultivo.nombre} - ${cultivo.parcela}`)
-                    )
-                  )
-            )
-          ),
-
-          // Severidad
-          h('div', { className: 'form-group' },
-            h('label', null, 'Severidad *'),
-            h('div', { className: 'severidad-options' },
-              Object.entries(window.SEVERIDADES).map(([key, info]) =>
-                h('label', { 
-                  key, 
-                  className: `severidad-option ${formData.severidad === key ? 'selected' : ''}`
-                },
-                  h('input', {
-                    type: 'radio',
-                    name: 'severidad',
-                    value: key,
-                    checked: formData.severidad === key,
-                    onChange: (e) => setFormData(prev => ({ ...prev, severidad: e.target.value }))
-                  }),
-                  h('div', { className: 'severidad-content' },
-                    h('span', { className: 'severidad-emoji' }, info.emoji),
-                    h('strong', null, info.label),
-                    h('p', { className: 'text-small' }, info.descripcion)
-                  )
-                )
-              )
-            )
-          ),
-
-          // Notas
-          h('div', { className: 'form-group' },
-            h('label', null, 'Notas iniciales (opcional)'),
-            h('textarea', {
-              value: formData.notas,
-              onChange: (e) => setFormData(prev => ({ ...prev, notas: e.target.value })),
-              rows: 3,
-              placeholder: 'Observaciones adicionales sobre la plaga...'
-            })
-          )
-        ),
-
-        h('div', { className: 'modal-footer' },
-          h('button', { 
-            type: 'button', 
-            className: 'btn btn-secondary',
-            onClick: onClose 
-          }, 'Cancelar'),
-          h('button', { 
-            type: 'submit', 
-            className: 'btn btn-primary',
-            disabled: loading
-          }, loading ? 'Guardando...' : 'Reportar Plaga')
-        )
-      )
-    )
-  );
-}
-
-function ModalTratamiento({ plaga, onClose, onSubmit }) {
-  const [formData, setFormData] = useState({
-    metodo: '',
-    notas: '',
-    mejoraObservada: false
-  });
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!formData.metodo) {
-      alert('Por favor selecciona un método de tratamiento');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await onSubmit(plaga.id, formData);
-      onClose();
-    } catch (error) {
-      alert('Error al añadir tratamiento: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return h('div', { className: 'modal-overlay', onClick: onClose },
-    h('div', { 
-      className: 'modal-content',
-      onClick: (e) => e.stopPropagation()
-    },
-      h('div', { className: 'modal-header' },
-        h('h2', null, h(Droplet, { size: 24 }), ' Registrar Tratamiento'),
-        h('button', { className: 'btn-close', onClick: onClose },
-          h(X, { size: 20 })
-        )
-      ),
-
-      h('form', { onSubmit: handleSubmit },
-        h('div', { className: 'modal-body' },
-          
-          // Método
-          h('div', { className: 'form-group' },
-            h('label', null, 'Método aplicado *'),
-            h('select', {
-              value: formData.metodo,
-              onChange: (e) => setFormData(prev => ({ ...prev, metodo: e.target.value })),
-              required: true
-            },
-              h('option', { value: '' }, 'Selecciona el método'),
-              window.METODOS_TRATAMIENTO.map((metodo, i) =>
-                h('option', { key: i, value: metodo }, metodo)
-              )
-            )
-          ),
-
-          // Notas
-          h('div', { className: 'form-group' },
-            h('label', null, 'Notas sobre la aplicación'),
-            h('textarea', {
-              value: formData.notas,
-              onChange: (e) => setFormData(prev => ({ ...prev, notas: e.target.value })),
-              rows: 3,
-              placeholder: 'Detalles de cómo/dónde se aplicó el tratamiento...'
-            })
-          ),
-
-          // Mejora observada
-          h('div', { className: 'form-group' },
-            h('label', { className: 'checkbox-label' },
-              h('input', {
-                type: 'checkbox',
-                checked: formData.mejoraObservada,
-                onChange: (e) => setFormData(prev => ({ ...prev, mejoraObservada: e.target.checked }))
-              }),
-              h('span', null, '✓ Se observa mejoría tras este tratamiento')
-            )
-          )
-        ),
-
-        h('div', { className: 'modal-footer' },
-          h('button', { 
-            type: 'button', 
-            className: 'btn btn-secondary',
-            onClick: onClose 
-          }, 'Cancelar'),
-          h('button', { 
-            type: 'submit', 
-            className: 'btn btn-primary',
-            disabled: loading
-          }, loading ? 'Guardando...' : 'Registrar Tratamiento')
-        )
-      )
-    )
-  );
-}
-
-function ModalDetalle({ plaga, onClose, onAddTratamiento, onCambiarEstado, onEliminar }) {
-  const infoCatalogo = window.PlagaService.getInfoTipo(plaga.tipoPlaga);
-  const diasActiva = window.PlagaService.diasDesdeDeteccion(plaga);
-  const estadoInfo = window.ESTADOS_PLAGA[plaga.estadoControl];
-  const severidadInfo = window.SEVERIDADES[plaga.severidad];
-
-  return h('div', { className: 'modal-overlay', onClick: onClose },
-    h('div', { 
-      className: 'modal-content modal-large',
-      onClick: (e) => e.stopPropagation()
-    },
-      h('div', { className: 'modal-header' },
-        h('h2', null, 
-          h('span', { className: 'plaga-emoji-large' }, infoCatalogo.emoji),
-          ' ',
-          infoCatalogo.nombre
-        ),
-        h('button', { className: 'btn-close', onClick: onClose },
-          h(X, { size: 20 })
-        )
-      ),
-
-      h('div', { className: 'modal-body' },
-        
-        // Información general
-        h('section', { className: 'detalle-section' },
-          h('h3', null, 'Información General'),
-          h('div', { className: 'detalle-grid' },
-            h('div', { className: 'detalle-item' },
-              h('strong', null, 'Estado:'),
-              h('span', { className: `estado-badge estado-${plaga.estadoControl}` },
-                estadoInfo.emoji, ' ', estadoInfo.label
-              )
-            ),
-            h('div', { className: 'detalle-item' },
-              h('strong', null, 'Severidad:'),
-              h('span', null, severidadInfo.emoji, ' ', severidadInfo.label)
-            ),
-            h('div', { className: 'detalle-item' },
-              h('strong', null, 'Detectada:'),
-              h('span', null, plaga.fechaDeteccion.toLocaleDateString(), ` (hace ${diasActiva} días)`)
-            ),
-            plaga.fechaResolucion && h('div', { className: 'detalle-item' },
-              h('strong', null, 'Resuelta:'),
-              h('span', null, plaga.fechaResolucion.toLocaleDateString())
-            )
-          )
-        ),
-
-        // Cultivos afectados
-        h('section', { className: 'detalle-section' },
-          h('h3', null, 'Cultivos Afectados'),
-          h('div', { className: 'cultivos-list' },
-            plaga.cultivosAfectados.map(c =>
-              h('span', { key: c.id, className: 'cultivo-tag' },
-                `${c.nombre} - ${c.parcela}`
-              )
-            )
-          )
-        ),
-
-        // Notas
-        plaga.notas && h('section', { className: 'detalle-section' },
-          h('h3', null, 'Notas'),
-          h('p', null, plaga.notas)
-        ),
-
-        // Timeline de tratamientos
-        h('section', { className: 'detalle-section' },
-          h('h3', null, 'Historial de Tratamientos'),
-          plaga.tratamientos.length === 0 
-            ? h('p', { className: 'text-muted' }, 'No se han aplicado tratamientos aún')
-            : h('div', { className: 'timeline' },
-                plaga.tratamientos.slice().reverse().map((t, i) =>
-                  h('div', { key: i, className: 'timeline-item' },
-                    h('div', { className: 'timeline-marker' }),
-                    h('div', { className: 'timeline-content' },
-                      h('div', { className: 'timeline-header' },
-                        h('strong', null, t.metodo),
-                        h('span', { className: 'timeline-date' },
-                          t.fecha.toLocaleDateString()
-                        )
-                      ),
-                      t.mejoraObservada && h('div', { className: 'timeline-mejora' },
-                        h(CheckCircle, { size: 14 }),
-                        h('span', null, 'Mejora observada')
-                      ),
-                      t.notas && h('p', { className: 'timeline-notes' }, t.notas)
-                    )
-                  )
-                )
-              )
-        )
-      ),
-
-      h('div', { className: 'modal-footer' },
-        h('button', {
-          className: 'btn btn-danger',
-          onClick: () => onEliminar(plaga.id)
-        }, 'Eliminar'),
-        
-        h('div', { className: 'modal-footer-right' },
-          h('button', {
-            className: 'btn btn-secondary',
-            onClick: onAddTratamiento
-          }, h(Plus, { size: 16 }), ' Añadir Tratamiento'),
-          
-          plaga.estadoControl === 'en_tratamiento' && h('button', {
-            className: 'btn btn-success',
-            onClick: () => {
-              onCambiarEstado(plaga.id, 'controlada');
-              onClose();
-            }
-          }, '✓ Marcar como Controlada'),
-          
-          plaga.estadoControl === 'controlada' && h('button', {
-            className: 'btn btn-success',
-            onClick: () => {
-              onCambiarEstado(plaga.id, 'resuelta');
-              onClose();
-            }
-          }, '✓ Marcar como Resuelta')
-        )
-      )
-    )
-  );
-}
-
-// Exportar
 window.PlagasView = PlagasView;

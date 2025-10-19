@@ -192,6 +192,33 @@ const Icons = {
     });
   },
 
+  ChevronDown: (props) => {
+    return Icon({
+      ...props,
+      'aria-label': 'Expandir abajo',
+      children: React.createElement('polyline', { points: '6 9 12 15 18 9' })
+    });
+  },
+
+  ChevronUp: (props) => {
+    return Icon({
+      ...props,
+      'aria-label': 'Expandir arriba',
+      children: React.createElement('polyline', { points: '18 15 12 9 6 15' })
+    });
+  },
+
+  CheckCircle: (props) => {
+    return Icon({
+      ...props,
+      'aria-label': 'Verificado',
+      children: [
+        React.createElement('path', { key: 1, d: 'M22 11.08V12a10 10 0 1 1-5.93-9.14' }),
+        React.createElement('polyline', { key: 2, points: '22 4 12 14.01 9 11.01' })
+      ]
+    });
+  },
+
   Filter: (props) => {
     return Icon({
       ...props,
