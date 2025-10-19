@@ -5,12 +5,11 @@
 
 function HuertosSelector({ huertos, huertoActual, onSeleccionar, onRecargar }) {
   const h = React.createElement;
-  const { useState, useEffect, useRef } = React;
+  const { useState } = React;
   
   const [mostrarModal, setMostrarModal] = useState(false);
   const [mostrarGestion, setMostrarGestion] = useState(false);
 
-  // Prevenir que los clicks en botones cierren modales
   const handleAbrirModal = (e) => {
     e.stopPropagation();
     e.preventDefault();
@@ -29,12 +28,6 @@ function HuertosSelector({ huertos, huertoActual, onSeleccionar, onRecargar }) {
 
   const handleCerrarGestion = () => {
     setMostrarGestion(false);
-  };
-
-  // DEBUG: Botón temporal para listar usuarios
-  const handleDebugUsuarios = async () => {
-    console.log('Ejecutando debug de usuarios...');
-    await window.HuertoService.debugListarUsuarios();
   };
 
   if (huertos.length === 0) {
@@ -73,74 +66,66 @@ function HuertosSelector({ huertos, huertoActual, onSeleccionar, onRecargar }) {
       style: { marginBottom: 'var(--space-6)' }
     },
       h('div', { className: 'card-body' },
-      h('div', { 
-        style: { 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          gap: 'var(--space-4)',
-          flexWrap: 'wrap'
-        } 
-      },
-        // Selector
-        h('div', { style: { flex: 1, minWidth: '250px' } },
-          h('label', { className: 'form-label', style: { marginBottom: 'var(--space-2)' } },
-            'Huerto activo'
-          ),
-          h('select', {
-            value: huertoActual || '',
-            onChange: (e) => {
-              e.stopPropagation();
-              onSeleccionar(e.target.value);
-            },
-            className: 'form-select form-select-lg'
-          },
-            ...huertos.map(h => 
-              React.createElement('option', { key: h.id, value: h.id },
-                `${h.nombre} - ${h.ciudad}${h.esDueno ? '' : ' (colaborador)'}`
-              )
-            )
-          )
-        ),
-
-        // Botones
         h('div', { 
           style: { 
             display: 'flex', 
-            gap: 'var(--space-3)',
-            alignItems: 'flex-end'
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            gap: 'var(--space-4)',
+            flexWrap: 'wrap'
           } 
         },
-          h('button', {
-            onClick: handleAbrirModal,
-            className: 'btn btn-outline',
-            title: 'Crear nuevo huerto'
-          },
-            h(window.Icons.Plus, { size: 20 }),
-            h('span', { className: 'mobile-hidden' }, 'Nuevo')
+          // Selector
+          h('div', { style: { flex: 1, minWidth: '250px' } },
+            h('label', { className: 'form-label', style: { marginBottom: 'var(--space-2)' } },
+              'Huerto activo'
+            ),
+            h('select', {
+              value: huertoActual || '',
+              onChange: (e) => {
+                e.stopPropagation();
+                onSeleccionar(e.target.value);
+              },
+              className: 'form-select form-select-lg'
+            },
+              ...huertos.map(h => 
+                React.createElement('option', { key: h.id, value: h.id },
+                  `${h.nombre} - ${h.ciudad}${h.esDueno ? '' : ' (colaborador)'}`
+                )
+              )
+            )
           ),
-          huerto && h('button', {
-            onClick: handleAbrirGestion,
-            className: 'btn btn-ghost',
-            title: 'Gestionar huerto'
+
+          // Botones
+          h('div', { 
+            style: { 
+              display: 'flex', 
+              gap: 'var(--space-3)',
+              alignItems: 'flex-end'
+            } 
           },
-            h(window.Icons.Info, { size: 20 }),
-            h('span', { className: 'mobile-hidden' }, 'Gestionar')
-          ),
-          h('button', {
-            onClick: handleDebugUsuarios,
-            className: 'btn btn-ghost',
-            title: 'Debug: Listar usuarios',
-            style: { background: '#FEE2E2', color: '#DC2626' }
-          },
-            h(window.Icons.Info, { size: 20 }),
-            h('span', { className: 'mobile-hidden' }, '🐛 Debug')
+            h('button', {
+              onClick: handleAbrirModal,
+              className: 'btn btn-outline',
+              title: 'Crear nuevo huerto'
+            },
+              h(window.Icons.Plus, { size: 20 }),
+              h('span', { className: 'mobile-hidden' }, 'Nuevo')
+            ),
+            huerto && h('button', {
+              onClick: handleAbrirGestion,
+              className: 'btn btn-ghost',
+              title: 'Gestionar huerto'
+            },
+              h(window.Icons.Info, { size: 20 }),
+              h('span', { className: 'mobile-hidden' }, 'Gestionar')
+            )
           )
         )
       )
     ),
 
-    // Modales renderizados FUERA del card
+    // Modales
     mostrarModal && h(ModalNuevoHuerto, {
       onCerrar: handleCerrarModal,
       onCreado: () => {
@@ -157,7 +142,7 @@ function HuertosSelector({ huertos, huertoActual, onSeleccionar, onRecargar }) {
         onRecargar();
       }
     })
-  ));
+  );
 }
 
 function ModalNuevoHuerto({ onCerrar, onCreado }) {
@@ -165,37 +150,30 @@ function ModalNuevoHuerto({ onCerrar, onCreado }) {
   const { useState, useRef, useEffect } = React;
   
   const [nombre, setNombre] = useState('');
-  const [ciudad, setCiudad] = useState('Málaga');
-  const [error, setError] = useState('');
+  const [ciudad, setCiudad] = useState('');
   const [cargando, setCargando] = useState(false);
-  const [listo, setListo] = useState(false);
+  const [error, setError] = useState('');
   const modalRef = useRef(null);
 
   useEffect(() => {
-    // Pequeño delay para asegurar que el DOM esté listo
-    const timer = setTimeout(() => setListo(true), 50);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!listo) return;
-    
     const handleClickOutside = (e) => {
-      if (modalRef.current && e.target === modalRef.current) {
+      if (modalRef.current && !modalRef.current.contains(e.target)) {
         onCerrar();
       }
     };
 
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') onCerrar();
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
-    
-    // Prevenir scroll del body cuando el modal está abierto
-    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleEscape);
     
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      document.body.style.overflow = '';
+      document.removeEventListener('keydown', handleEscape);
     };
-  }, [onCerrar, listo]);
+  }, [onCerrar]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -206,70 +184,74 @@ function ModalNuevoHuerto({ onCerrar, onCreado }) {
       await window.HuertoService.create({ nombre, ciudad });
       onCreado();
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Error al crear el huerto');
     } finally {
       setCargando(false);
     }
   };
 
-  if (!listo) return null;
-
-  const modalContent = h('div', { 
-    ref: modalRef,
-    className: 'modal-overlay',
-    style: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }
-  },
-    h('div', { 
-      className: 'modal-content'
-    },
+  return h('div', { className: 'modal-overlay' },
+    h('div', { className: 'modal-content', ref: modalRef },
       h('div', { className: 'modal-header' },
-        h('h2', { className: 'heading-3' }, 'Crear Nuevo Huerto'),
+        h('h2', { className: 'heading-3' }, 'Nuevo Huerto'),
         h('button', {
           onClick: onCerrar,
-          className: 'btn btn-ghost btn-sm'
-        }, h(window.Icons.X, { size: 20 }))
+          className: 'btn btn-ghost btn-icon',
+          'aria-label': 'Cerrar'
+        }, h(window.Icons.X, { size: 24 }))
       ),
 
       h('form', { onSubmit: handleSubmit },
         h('div', { className: 'modal-body' },
           error && h('div', { 
+            className: 'info-box',
             style: { 
-              padding: 'var(--space-3)', 
-              background: 'var(--color-error-bg)',
-              color: 'var(--color-error)',
-              borderRadius: 'var(--radius-md)',
               marginBottom: 'var(--space-4)',
-              fontSize: 'var(--font-size-sm)'
-            } 
-          }, error),
+              borderLeftColor: 'var(--color-error)',
+              background: 'var(--color-error-bg)'
+            }
+          },
+            h('div', { 
+              className: 'info-box-header',
+              style: { color: 'var(--color-error)' }
+            },
+              h(window.Icons.AlertCircle, { size: 20 }),
+              h('span', null, 'Error')
+            ),
+            h('p', { 
+              className: 'info-box-content',
+              style: { margin: 0, color: 'var(--color-error)' }
+            }, error)
+          ),
 
           h('div', { className: 'form-group' },
-            h('label', { htmlFor: 'huerto-nombre', className: 'form-label form-label-required' },
+            h('label', { htmlFor: 'nombre', className: 'form-label form-label-required' }, 
               'Nombre del huerto'
             ),
             h('input', {
-              id: 'huerto-nombre',
+              id: 'nombre',
               type: 'text',
               value: nombre,
               onChange: (e) => setNombre(e.target.value),
               className: 'form-input',
-              placeholder: 'ej: Mi Huerto Urbano',
+              placeholder: 'Mi huerto urbano',
               required: true,
-              disabled: cargando
+              disabled: cargando,
+              autoFocus: true
             })
           ),
 
           h('div', { className: 'form-group' },
-            h('label', { htmlFor: 'huerto-ciudad', className: 'form-label form-label-required' },
+            h('label', { htmlFor: 'ciudad', className: 'form-label form-label-required' }, 
               'Ciudad'
             ),
             h('input', {
-              id: 'huerto-ciudad',
+              id: 'ciudad',
               type: 'text',
               value: ciudad,
               onChange: (e) => setCiudad(e.target.value),
               className: 'form-input',
-              placeholder: 'ej: Málaga',
+              placeholder: 'Málaga',
               required: true,
               disabled: cargando
             })
@@ -295,12 +277,6 @@ function ModalNuevoHuerto({ onCerrar, onCreado }) {
       )
     )
   );
-
-  // Usar ReactDOM.createPortal para renderizar en body
-  if (typeof ReactDOM.createPortal !== 'undefined') {
-    return ReactDOM.createPortal(modalContent, document.body);
-  }
-  return modalContent;
 }
 
 function ModalGestionHuerto({ huerto, onCerrar, onActualizado }) {
@@ -373,6 +349,7 @@ function ModalGestionHuerto({ huerto, onCerrar, onActualizado }) {
   const handleQuitar = async (colaboradorId) => {
     if (!confirm('¿Quitar a este colaborador?')) return;
     
+    setError('');
     try {
       await window.HuertoService.quitarColaborador(huerto.id, colaboradorId);
       await cargarDetalles();
@@ -547,8 +524,15 @@ function ModalGestionHuerto({ huerto, onCerrar, onActualizado }) {
             h('p', { className: 'text-small text-muted' }, 
               'No hay colaboradores todavía'
             ) :
-            h('div', { style: { display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' } },
-              ...detalles.colaboradores.map(col =>
+            h('div', { 
+              style: { 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: 'var(--space-3)' 
+              } 
+            },
+              // ✅ SIN SPREAD OPERATOR - Array directo
+              detalles.colaboradores.map(col =>
                 h('div', {
                   key: col.id,
                   style: {
@@ -581,7 +565,7 @@ function ModalGestionHuerto({ huerto, onCerrar, onActualizado }) {
         h('button', {
           onClick: onCerrar,
           className: 'btn btn-ghost'
-        }, 'Cerrar'        )
+        }, 'Cerrar')
       )
     )
   );

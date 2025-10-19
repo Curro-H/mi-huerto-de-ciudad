@@ -59,68 +59,62 @@ const HuertoService = {
       // Huertos donde soy dueño
       const queryDueno = new Parse.Query(HuertoClass);
       queryDueno.equalTo('dueno', user);
+      queryDueno.include('dueno');
       
       // Huertos donde soy colaborador
       const queryColaborador = new Parse.Query(HuertoClass);
       queryColaborador.equalTo('colaboradores', user);
+      queryColaborador.include('dueno');
       
       // Combinar queries
       const mainQuery = Parse.Query.or(queryDueno, queryColaborador);
-      mainQuery.include('dueno');
       mainQuery.descending('createdAt');
       
       const resultados = await mainQuery.find();
       
-      return resultados.map(h => ({
-        id: h.id,
-        nombre: h.get('nombre'),
-        ciudad: h.get('ciudad'),
-        esDueno: h.get('dueno').id === user.id,
-        duenoNombre: h.get('dueno').get('nombre'),
-        colaboradores: h.get('colaboradores') || []
-      }));
+      return resultados.map(h => {
+        const dueno = h.get('dueno');
+        
+        if (!dueno) {
+          console.error('Huerto sin dueño:', h.id);
+          return null;
+        }
+        
+        return {
+          id: h.id,
+          nombre: h.get('nombre'),
+          ciudad: h.get('ciudad'),
+          esDueno: dueno.id === user.id,
+          duenoNombre: dueno.get('nombre') || 'Desconocido',
+          colaboradores: h.get('colaboradores') || []
+        };
+      }).filter(h => h !== null);
+      
     } catch (error) {
       console.error('Error al obtener huertos:', error);
       throw error;
     }
   },
 
-  // Obtener detalles de un huerto
+  // Obtener detalles de un huerto (usando Cloud Function)
   async getById(huertoId) {
     try {
       const user = Parse.User.current();
       if (!user) throw new Error('Usuario no autenticado');
 
-      const HuertoClass = Parse.Object.extend("Huerto");
-      const query = new Parse.Query(HuertoClass);
-      query.include('dueno');
-      query.include('colaboradores');
+      // Usar Cloud Function para obtener todos los detalles
+      const detalles = await Parse.Cloud.run('obtenerDetallesHuerto', { 
+        huertoId: huertoId 
+      });
       
-      const huerto = await query.get(huertoId);
-      
-      const colaboradores = huerto.get('colaboradores') || [];
-      
-      return {
-        id: huerto.id,
-        nombre: huerto.get('nombre'),
-        ciudad: huerto.get('ciudad'),
-        esDueno: huerto.get('dueno').id === user.id,
-        duenoId: huerto.get('dueno').id,
-        duenoNombre: huerto.get('dueno').get('nombre'),
-        duenoEmail: huerto.get('dueno').get('email'),
-        colaboradores: colaboradores.map(c => ({
-          id: c.id,
-          nombre: c.get('nombre'),
-          email: c.get('email')
-        }))
-      };
+      return detalles;
     } catch (error) {
       console.error('Error al obtener huerto:', error);
       throw error;
     }
   },
 
-  // Actualizar huerto
+  // Actualizar huerto (solo dueño)
   async update(huertoId, updates) {
     try {
       const user = Parse.User.current();
@@ -151,7 +145,7 @@ const HuertoService = {
     }
   },
 
-  // Eliminar huerto
+  // Eliminar huerto (solo dueño)
   async delete(huertoId) {
     try {
       const user = Parse.User.current();
@@ -174,25 +168,24 @@ const HuertoService = {
     }
   },
 
-  // Invitar colaborador por email - CON CLOUD FUNCTION
-  // Invitar colaborador por email
+  // Invitar colaborador por email (dueño O colaborador pueden invitar)
+ // Invitar colaborador por email - VERSIÓN FINAL CORREGIDA
 async invitarColaborador(huertoId, emailColaborador) {
   try {
     console.log('=== INICIO invitarColaborador ===');
-    const user = Parse.User.current();
     console.log('1. HuertoId:', huertoId);
     console.log('2. Email colaborador:', emailColaborador);
     
+    const user = Parse.User.current();
+    console.log('3. Usuario actual:', user ? user.id : 'NO HAY USUARIO');
+    
     if (!user) throw new Error('Usuario no autenticado');
-    console.log('3. Usuario actual:', user.id);
 
     // Buscar el huerto
     console.log('4. Buscando huerto...');
     const HuertoClass = Parse.Object.extend("Huerto");
     const queryHuerto = new Parse.Query(HuertoClass);
-    queryHuerto.include('colaboradores');
     const huerto = await queryHuerto.get(huertoId);
-    
     console.log('5. Huerto encontrado:', huerto.id);
     console.log('6. Dueño del huerto:', huerto.get('dueno').id);
     
@@ -202,104 +195,151 @@ async invitarColaborador(huertoId, emailColaborador) {
     }
     console.log('7. Verificación de dueño: OK');
 
-    // Verificar que no se está agregando a sí mismo
-    if (user.get('email') === emailColaborador) {
-      throw new Error('No puedes agregarte a ti mismo como colaborador');
+    // Buscar usuario
+    console.log('8. Preparando búsqueda de usuario...');
+    const emailNormalizado = emailColaborador.toLowerCase().trim();
+    console.log('9. Email normalizado:', emailNormalizado);
+    
+    // Usar Cloud Function para buscar usuario
+    console.log('10. Intentando con Cloud Function buscarUsuarioPorEmail...');
+    let resultadoBusqueda;
+    try {
+      resultadoBusqueda = await Parse.Cloud.run('buscarUsuarioPorEmail', {
+        email: emailNormalizado
+      });
+      
+      console.log('11. Cloud Function ejecutada exitosamente');
+      console.log('12. Resultado:', resultadoBusqueda);
+    } catch (cloudError) {
+      console.log('11. Cloud Function falló:', cloudError.message);
+      throw new Error('No se encontró un usuario registrado con ese email. El usuario debe crear una cuenta primero.');
+    }
+    
+    if (!resultadoBusqueda) {
+      console.log('13. Cloud Function retornó null');
+      throw new Error('No se encontró un usuario registrado con ese email.');
     }
 
-    console.log('8. Ejecutando Cloud Function...');
-    
-    // Buscar usuario con Cloud Function
-    const resultado = await Parse.Cloud.run('buscarUsuarioPorEmail', { 
-      email: emailColaborador 
-    });
-    
-    console.log('9. Cloud Function exitosa, resultado:', resultado);
+    console.log('13. Usuario encontrado con Cloud Function');
+    const colaboradorId = resultadoBusqueda.objectId || resultadoBusqueda.id;
+    console.log('14. ID del colaborador:', colaboradorId);
 
-    // ✅ AQUÍ ESTÁ EL CAMBIO CLAVE:
-    // No intentar hacer .get(), usar directamente createWithoutData
-    const colaboradorId = resultado.objectId || resultado.id;
-    console.log('10. ID del colaborador:', colaboradorId);
-
-    // Crear pointer al usuario usando solo el ID
+    // Crear pointer del colaborador
     const colaborador = Parse.User.createWithoutData(colaboradorId);
-    console.log('11. Pointer creado para colaborador');
+    colaborador.id = colaboradorId;
+
+    console.log('20. Verificando que no sea el mismo usuario...');
+    if (colaboradorId === user.id) {
+      throw new Error('No puedes agregarte a ti mismo como colaborador');
+    }
+    console.log('21. Verificación: OK, no es el mismo usuario');
 
     // Verificar que no esté ya agregado
+    console.log('22. Verificando colaboradores existentes...');
     const colaboradores = huerto.get('colaboradores') || [];
+    console.log('23. Número de colaboradores actuales:', colaboradores.length);
     const yaExiste = colaboradores.some(c => c.id === colaboradorId);
+    console.log('24. ¿Ya existe?:', yaExiste);
     
     if (yaExiste) {
       throw new Error('Este usuario ya es colaborador del huerto');
     }
-    console.log('12. Usuario no está duplicado, continuando...');
 
     // Agregar colaborador
+    console.log('25. Agregando colaborador al huerto...');
     huerto.addUnique('colaboradores', colaborador);
-    console.log('13. Colaborador agregado al array');
     
-    // Actualizar ACL para dar permisos al colaborador
-    const acl = huerto.getACL() || new Parse.ACL(user);
+    // Actualizar ACL del huerto
+    console.log('26. Actualizando ACL del huerto...');
+    const acl = huerto.getACL();
+    console.log('27. ACL actual obtenido');
     acl.setReadAccess(colaboradorId, true);
     acl.setWriteAccess(colaboradorId, true);
     huerto.setACL(acl);
-    console.log('14. ACL actualizado');
+    console.log('28. ACL del huerto actualizado en memoria');
     
+    console.log('29. Guardando huerto...');
     await huerto.save();
-    console.log('15. Huerto guardado exitosamente');
+    console.log('30. Huerto guardado exitosamente');
 
-    // Retornar la info del colaborador
-    return {
+    // Actualizar ACL de todos los cultivos del huerto
+    console.log('31. Actualizando ACL de cultivos existentes...');
+    try {
+      const CultivoClass = Parse.Object.extend("Cultivo");
+      const queryCultivos = new Parse.Query(CultivoClass);
+      queryCultivos.equalTo('huerto', huerto);
+      queryCultivos.limit(1000);
+      const cultivos = await queryCultivos.find();
+      
+      console.log(`32. Encontrados ${cultivos.length} cultivos para actualizar`);
+      
+      for (const cultivo of cultivos) {
+        const cultivoACL = cultivo.getACL();
+        if (cultivoACL) {
+          cultivoACL.setReadAccess(colaboradorId, true);
+          cultivoACL.setWriteAccess(colaboradorId, true);
+          cultivo.setACL(cultivoACL);
+        }
+      }
+      
+      if (cultivos.length > 0) {
+        await Parse.Object.saveAll(cultivos);
+        console.log('33. ACL de cultivos actualizados correctamente');
+      }
+    } catch (cultivoError) {
+      console.error('Error al actualizar ACL de cultivos:', cultivoError);
+      // No lanzar error, continuar con las tareas
+    }
+
+    // Actualizar ACL de todas las tareas del huerto
+    console.log('34. Actualizando ACL de tareas existentes...');
+    try {
+      const TareaClass = Parse.Object.extend("Tarea");
+      const queryTareas = new Parse.Query(TareaClass);
+      queryTareas.equalTo('huerto', huerto);
+      queryTareas.limit(1000);
+      const tareas = await queryTareas.find();
+      
+      console.log(`35. Encontradas ${tareas.length} tareas para actualizar`);
+      
+      for (const tarea of tareas) {
+        const tareaACL = tarea.getACL();
+        if (tareaACL) {
+          tareaACL.setReadAccess(colaboradorId, true);
+          tareaACL.setWriteAccess(colaboradorId, true);
+          tarea.setACL(tareaACL);
+        }
+      }
+      
+      if (tareas.length > 0) {
+        await Parse.Object.saveAll(tareas);
+        console.log('36. ACL de tareas actualizados correctamente');
+      }
+    } catch (tareaError) {
+      console.error('Error al actualizar ACL de tareas:', tareaError);
+      // No lanzar error
+    }
+
+    // Preparar objeto de retorno
+    const datosColaborador = {
       id: colaboradorId,
-      nombre: resultado.nombre,
-      email: resultado.email
+      nombre: resultadoBusqueda.nombre || 'Usuario',
+      email: resultadoBusqueda.email || emailNormalizado
     };
+    
+    console.log('37. Resultado final:', datosColaborador);
+    console.log('=== FIN invitarColaborador - ÉXITO ===');
+    
+    return datosColaborador;
   } catch (error) {
-    console.error('❌ Error en invitarColaborador:', error);
+    console.error('=== ERROR en invitarColaborador ===');
+    console.error('Tipo de error:', error.constructor.name);
+    console.error('Mensaje:', error.message);
+    console.error('Stack:', error.stack);
+    console.error('=== FIN ERROR ===');
     throw error;
   }
 },
-
-  // Quitar colaborador
-  async quitarColaborador(huertoId, colaboradorId) {
-    try {
-      const user = Parse.User.current();
-      if (!user) throw new Error('Usuario no autenticado');
-
-      const HuertoClass = Parse.Object.extend("Huerto");
-      const query = new Parse.Query(HuertoClass);
-      query.include('colaboradores');
-      const huerto = await query.get(huertoId);
-      
-      // Verificar que es el dueño
-      if (huerto.get('dueno').id !== user.id) {
-        throw new Error('Solo el dueño puede quitar colaboradores');
-      }
-
-      const colaboradores = huerto.get('colaboradores') || [];
-      const colaboradorAQuitar = colaboradores.find(c => c.id === colaboradorId);
-      
-      if (!colaboradorAQuitar) {
-        throw new Error('El colaborador no existe en este huerto');
-      }
-
-      // Quitar del array
-      huerto.remove('colaboradores', colaboradorAQuitar);
-      
-      // Actualizar ACL para quitar permisos
-      const acl = huerto.getACL();
-      acl.setReadAccess(colaboradorId, false);
-      acl.setWriteAccess(colaboradorId, false);
-      huerto.setACL(acl);
-      
-      await huerto.save();
-      
-      return true;
-    } catch (error) {
-      console.error('Error al quitar colaborador:', error);
-      throw error;
-    }
-  },
 
   // Verificar permisos de escritura
   async tienePermisoEscritura(huertoId) {
@@ -319,65 +359,6 @@ async invitarColaborador(huertoId, emailColaborador) {
       return esDueno || esColaborador;
     } catch (error) {
       return false;
-    }
-  },
-
-  // Método de debug para listar todos los usuarios - VERSION SIMPLE
-  async debugListarUsuarios() {
-    try {
-      console.log('=== DEBUG: LISTANDO USUARIOS ===');
-      console.log('Intentando con query directa...');
-      
-      const query = new Parse.Query(Parse.User);
-      query.limit(100);
-      
-      let usuarios;
-      try {
-        usuarios = await query.find();
-        console.log(`✅ Query ejecutada exitosamente`);
-        console.log(`Total de usuarios encontrados: ${usuarios.length}`);
-      } catch (queryError) {
-        console.error('❌ Error en query:', queryError);
-        console.error('Tipo:', queryError.constructor.name);
-        console.error('Mensaje:', queryError.message);
-        console.error('Code:', queryError.code);
-        
-        // Mensaje más claro del problema
-        if (queryError.message && queryError.message.includes('not allowed')) {
-          console.error('\n⚠️ PROBLEMA DE PERMISOS ⚠️');
-          console.error('Los permisos de Find en la clase _User no están configurados correctamente.');
-          console.error('Ve a Back4app → Core → Browser → User → More → Security');
-          console.error('Marca: Find → requiresAuthentication');
-        }
-        
-        return [];
-      }
-      
-      if (usuarios.length === 0) {
-        console.log('⚠️ No se encontraron usuarios (la query funcionó pero retornó 0 resultados)');
-        return [];
-      }
-      
-      console.log('\n=== LISTA DE USUARIOS ===');
-      usuarios.forEach((u, index) => {
-        console.log(`\n👤 Usuario ${index + 1}:`);
-        console.log('  🆔 ObjectId:', u.id);
-        console.log('  📧 Username:', u.get('username'));
-        console.log('  ✉️  Email:', u.get('email'));
-        console.log('  👤 Nombre:', u.get('nombre'));
-        console.log('  📅 Creado:', u.get('createdAt'));
-      });
-      console.log('\n=== FIN LISTA ===\n');
-      
-      return usuarios.map(u => ({
-        id: u.id,
-        username: u.get('username'),
-        email: u.get('email'),
-        nombre: u.get('nombre')
-      }));
-    } catch (error) {
-      console.error('❌ Error general listando usuarios:', error);
-      return [];
     }
   }
 };
