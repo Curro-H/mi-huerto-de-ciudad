@@ -1,46 +1,30 @@
 /**
  * Aplicación Principal - Mi Huerto de Ciudad
- * Con sistema de autenticación y huertos
+ * Con sistema de autenticación, huertos y plagas
  */
 
 function HuertoApp() {
   const { useState, useEffect, createElement: h } = React;
   
+  // ===== ESTADOS =====
   const [parseReady, setParseReady] = useState(false);
   const [usuario, setUsuario] = useState(null);
   const [huertos, setHuertos] = useState([]);
   const [huertoActual, setHuertoActual] = useState(null);
   const [cultivos, setCultivos] = useState([]);
   const [tareas, setTareas] = useState([]);
+  const [plagas, setPlagas] = useState([]);
   const [sincronizando, setSincronizando] = useState(false);
   const [conectado, setConectado] = useState(true);
   const [mensajeEstado, setMensajeEstado] = useState('');
   const [vistaActual, setVistaActual] = useState('cultivos');
+  const [cultivoParaPlaga, setCultivoParaPlaga] = useState(null); // ← NUEVO: cultivo preseleccionado
   
-  useEffect(() => {
-    inicializarParse();
-  }, []);
-
-  useEffect(() => {
-    if (parseReady) {
-      verificarSesion();
-    }
-  }, [parseReady]);
-
-  useEffect(() => {
-    if (usuario && huertos.length > 0) {
-      // Si hay huertos pero no hay uno seleccionado, seleccionar el primero
-      if (!huertoActual) {
-        setHuertoActual(huertos[0].id);
-      }
-    }
-  }, [usuario, huertos]);
-
-  useEffect(() => {
-    if (huertoActual) {
-      cargarDatosHuerto();
-    }
-  }, [huertoActual]);
+  // ===== FUNCIONES AUXILIARES =====
+  const mostrarMensaje = (texto) => {
+    setMensajeEstado(texto);
+    setTimeout(() => setMensajeEstado(''), 3000);
+  };
 
   const inicializarParse = () => {
     try {
@@ -68,6 +52,30 @@ function HuertoApp() {
     }
   };
 
+  // ===== HANDLERS DE AUTENTICACIÓN =====
+  const handleLoginSuccess = (user) => {
+    setUsuario(user);
+    cargarHuertos();
+  };
+
+  const handleLogout = async () => {
+    if (!confirm('¿Cerrar sesión?')) return;
+    
+    try {
+      await window.AuthService.logout();
+      setUsuario(null);
+      setHuertos([]);
+      setHuertoActual(null);
+      setCultivos([]);
+      setTareas([]);
+      setPlagas([]); // ← NUEVO
+      mostrarMensaje('Sesión cerrada');
+    } catch (error) {
+      mostrarMensaje('Error al cerrar sesión');
+    }
+  };
+
+  // ===== CARGA DE DATOS =====
   const cargarHuertos = async () => {
     setSincronizando(true);
     try {
@@ -89,15 +97,22 @@ function HuertoApp() {
     
     setSincronizando(true);
     try {
-      const [cultivosData, tareasData] = await Promise.all([
+      // Verificar si PlagaService existe antes de llamarlo
+      const plagasPromise = window.PlagaService 
+        ? window.PlagaService.getAll(huertoActual)
+        : Promise.resolve([]);
+
+      const [cultivosData, tareasData, plagasData] = await Promise.all([
         window.CultivoService.getAll(huertoActual),
-        window.TareaService.getAll(huertoActual)
+        window.TareaService.getAll(huertoActual),
+        plagasPromise // ← NUEVO
       ]);
       
       setCultivos(cultivosData);
       setTareas(tareasData);
+      setPlagas(plagasData); // ← NUEVO
       setConectado(true);
-      console.log(`✅ ${cultivosData.length} cultivos, ${tareasData.length} tareas`);
+      console.log(`✅ ${cultivosData.length} cultivos, ${tareasData.length} tareas, ${plagasData.length} plagas`);
     } catch (error) {
       console.error('❌ Error al cargar datos:', error);
       setConectado(false);
@@ -107,33 +122,7 @@ function HuertoApp() {
     }
   };
 
-  const mostrarMensaje = (texto) => {
-    setMensajeEstado(texto);
-    setTimeout(() => setMensajeEstado(''), 3000);
-  };
-
-  const handleLoginSuccess = (user) => {
-    setUsuario(user);
-    cargarHuertos();
-  };
-
-  const handleLogout = async () => {
-    if (!confirm('¿Cerrar sesión?')) return;
-    
-    try {
-      await window.AuthService.logout();
-      setUsuario(null);
-      setHuertos([]);
-      setHuertoActual(null);
-      setCultivos([]);
-      setTareas([]);
-      mostrarMensaje('Sesión cerrada');
-    } catch (error) {
-      mostrarMensaje('Error al cerrar sesión');
-    }
-  };
-
-  // Handlers Cultivos
+  // ===== HANDLERS CULTIVOS =====
   const handleAgregarCultivo = async (cultivoData) => {
     if (!huertoActual) return;
     
@@ -192,7 +181,7 @@ function HuertoApp() {
     }
   };
 
-  // Handlers Tareas
+  // ===== HANDLERS TAREAS =====
   const handleAgregarTarea = async (tareaData) => {
     if (!huertoActual) return;
     
@@ -249,7 +238,99 @@ function HuertoApp() {
     }
   };
 
-  // Renderizado
+  // ===== HANDLERS PLAGAS (NUEVO) =====
+  const handleReportarPlagaDesdeCultivo = (cultivo) => {
+    setCultivoParaPlaga(cultivo);
+    setVistaActual('plagas');
+  };
+
+  const handleAgregarPlaga = async (plagaData) => {
+    if (!huertoActual) return;
+    
+    setSincronizando(true);
+    try {
+      const nueva = await window.PlagaService.create(huertoActual, plagaData);
+      setPlagas([nueva, ...plagas]);
+      mostrarMensaje('✅ Plaga reportada');
+      setCultivoParaPlaga(null); // Limpiar después de crear
+    } catch (error) {
+      console.error(error);
+      mostrarMensaje('❌ Error al reportar plaga');
+    } finally {
+      setSincronizando(false);
+    }
+  };
+
+  const handleAddTratamiento = async (plagaId, tratamientoData) => {
+    setSincronizando(true);
+    try {
+      const actualizada = await window.PlagaService.addTratamiento(plagaId, tratamientoData);
+      setPlagas(plagas.map(p => p.id === plagaId ? actualizada : p));
+      mostrarMensaje('✅ Tratamiento añadido');
+    } catch (error) {
+      console.error(error);
+      mostrarMensaje('❌ Error');
+    } finally {
+      setSincronizando(false);
+    }
+  };
+
+  const handleCambiarEstadoPlaga = async (plagaId, nuevoEstado) => {
+    setSincronizando(true);
+    try {
+      const actualizada = await window.PlagaService.cambiarEstado(plagaId, nuevoEstado);
+      setPlagas(plagas.map(p => p.id === plagaId ? actualizada : p));
+      mostrarMensaje('✅ Estado actualizado');
+    } catch (error) {
+      console.error(error);
+      mostrarMensaje('❌ Error');
+    } finally {
+      setSincronizando(false);
+    }
+  };
+
+  const handleEliminarPlaga = async (id) => {
+    if (!confirm('¿Eliminar esta plaga?')) return;
+    setSincronizando(true);
+    try {
+      await window.PlagaService.delete(id);
+      setPlagas(plagas.filter(p => p.id !== id));
+      mostrarMensaje('✅ Plaga eliminada');
+    } catch (error) {
+      console.error(error);
+      mostrarMensaje('❌ Error');
+    } finally {
+      setSincronizando(false);
+    }
+  };
+
+  // ===== EFFECTS =====
+  useEffect(() => {
+    inicializarParse();
+  }, []);
+
+  useEffect(() => {
+    if (parseReady) {
+      verificarSesion();
+    }
+  }, [parseReady]);
+
+  useEffect(() => {
+    if (usuario && huertos.length > 0) {
+      // Si hay huertos pero no hay uno seleccionado, seleccionar el primero
+      if (!huertoActual) {
+        setHuertoActual(huertos[0].id);
+      }
+    }
+  }, [usuario, huertos, huertoActual]);
+
+  useEffect(() => {
+    if (huertoActual) {
+      cargarDatosHuerto();
+    }
+  }, [huertoActual]);
+
+  // ===== RENDERIZADO =====
   if (!parseReady) {
     return h('div', { className: 'loading-container' },
       h('div', { className: 'spinner' }),
@@ -279,10 +360,12 @@ function HuertoApp() {
       case 'cultivos':
         return h(window.CultivosView, {
           cultivos,
+          plagas,
           onAgregarCultivo: handleAgregarCultivo,
           onEliminarCultivo: handleEliminarCultivo,
           onCambiarEstado: handleCambiarEstado,
-          onCambiarRiego: handleCambiarRiego
+          onCambiarRiego: handleCambiarRiego,
+          onReportarPlaga: handleReportarPlagaDesdeCultivo // ← NUEVO
         });
       case 'tareas':
         return h(window.TareasView, {
@@ -292,6 +375,30 @@ function HuertoApp() {
           onEliminarTarea: handleEliminarTarea,
           onCambiarPrioridad: handleCambiarPrioridad
         });
+      case 'plagas': // ← NUEVO
+        // Verificar que PlagasView existe antes de renderizar
+        if (window.PlagasView) {
+          return h(window.PlagasView, {
+            plagas,
+            cultivos,
+            cultivoPreseleccionado: cultivoParaPlaga, // ← NUEVO: pasar cultivo
+            onAgregarPlaga: handleAgregarPlaga,
+            onAddTratamiento: handleAddTratamiento,
+            onCambiarEstado: handleCambiarEstadoPlaga,
+            onEliminar: handleEliminarPlaga,
+            onClearPreseleccion: () => setCultivoParaPlaga(null) // ← NUEVO: limpiar
+          });
+        } else {
+          return h('div', { className: 'info-box' },
+            h('div', { className: 'info-box-header' },
+              h(window.Icons.AlertCircle, { size: 20 }),
+              h('span', null, 'Módulo de plagas no disponible')
+            ),
+            h('p', { className: 'info-box-content' }, 
+              'El módulo de plagas no está cargado. Verifica que plaga.service.js y PlagasView.js estén incluidos.'
+            )
+          );
+        }
       case 'calendario':
         return h(window.CalendarioView);
       case 'consejos':
@@ -315,7 +422,11 @@ function HuertoApp() {
       onSeleccionar: setHuertoActual,
       onRecargar: cargarHuertos
     }),
-    h(window.Navigation, { vistaActual, setVistaActual }),
+    h(window.Navigation, { 
+      vistaActual, 
+      setVistaActual,
+      plagas // ← NUEVO: para mostrar badge
+    }),
     h('main', { id: 'main-content', role: 'main' }, renderVista())
   );
 }

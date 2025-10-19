@@ -154,6 +154,63 @@ const Icons = {
     });
   },
 
+  AlertTriangle: (props) => {
+    return Icon({
+      ...props,
+      'aria-label': 'Advertencia',
+      children: [
+        React.createElement('path', { key: 1, d: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z' }),
+        React.createElement('line', { key: 2, x1: '12', y1: '9', x2: '12', y2: '13' }),
+        React.createElement('line', { key: 3, x1: '12', y1: '17', x2: '12.01', y2: '17' })
+      ]
+    });
+  },
+
+  Bug: (props) => {
+    return Icon({
+      ...props,
+      'aria-label': 'Plaga',
+      children: [
+        React.createElement('rect', { key: 1, x: '8', y: '6', width: '8', height: '14', rx: '4' }),
+        React.createElement('path', { key: 2, d: 'm19 7-3 2' }),
+        React.createElement('path', { key: 3, d: 'm5 7 3 2' }),
+        React.createElement('path', { key: 4, d: 'm19 19-3-2' }),
+        React.createElement('path', { key: 5, d: 'm5 19 3-2' }),
+        React.createElement('path', { key: 6, d: 'M20 13h-4' }),
+        React.createElement('path', { key: 7, d: 'M4 13h4' }),
+        React.createElement('path', { key: 8, d: 'm10 4 1 2' }),
+        React.createElement('path', { key: 9, d: 'm14 4-1 2' })
+      ]
+    });
+  },
+
+  ChevronRight: (props) => {
+    return Icon({
+      ...props,
+      'aria-label': 'Siguiente',
+      children: React.createElement('polyline', { points: '9 18 15 12 9 6' })
+    });
+  },
+
+  Filter: (props) => {
+    return Icon({
+      ...props,
+      'aria-label': 'Filtrar',
+      children: React.createElement('polygon', { points: '22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3' })
+    });
+  },
+
+  CheckCircle: (props) => {
+    return Icon({
+      ...props,
+      'aria-label': 'Verificado',
+      children: [
+        React.createElement('path', { key: 1, d: 'M22 11.08V12a10 10 0 1 1-5.93-9.14' }),
+        React.createElement('polyline', { key: 2, points: '22 4 12 14.01 9 11.01' })
+      ]
+    });
+  },
+
   MapPin: (props) => {
     return Icon({
       ...props,
@@ -189,6 +246,18 @@ const Icons = {
       children: [
         React.createElement('path', { key: 1, d: 'M22.61 16.95A5 5 0 0 0 18 10h-1.26a8 8 0 0 0-7.05-6M5 5a8 8 0 0 0 4 15h9a5 5 0 0 0 1.7-.3' }),
         React.createElement('line', { key: 2, x1: '2', y1: '2', x2: '22', y2: '22' })
+      ]
+    });
+  },
+
+  Lightbulb: (props) => {
+    return Icon({
+      ...props,
+      'aria-label': 'Idea',
+      children: [
+        React.createElement('path', { key: 1, d: 'M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5' }),
+        React.createElement('path', { key: 2, d: 'M9 18h6' }),
+        React.createElement('path', { key: 3, d: 'M10 22h4' })
       ]
     });
   }
