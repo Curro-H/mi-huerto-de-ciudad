@@ -175,141 +175,90 @@ const HuertoService = {
   },
 
   // Invitar colaborador por email - CON CLOUD FUNCTION
-  async invitarColaborador(huertoId, emailColaborador) {
-    try {
-      console.log('=== INICIO invitarColaborador ===');
-      console.log('1. HuertoId:', huertoId);
-      console.log('2. Email colaborador:', emailColaborador);
-      
-      const user = Parse.User.current();
-      console.log('3. Usuario actual:', user ? user.id : 'NO HAY USUARIO');
-      
-      if (!user) throw new Error('Usuario no autenticado');
+  // Invitar colaborador por email
+async invitarColaborador(huertoId, emailColaborador) {
+  try {
+    console.log('=== INICIO invitarColaborador ===');
+    const user = Parse.User.current();
+    console.log('1. HuertoId:', huertoId);
+    console.log('2. Email colaborador:', emailColaborador);
+    
+    if (!user) throw new Error('Usuario no autenticado');
+    console.log('3. Usuario actual:', user.id);
 
-      // Buscar el huerto
-      console.log('4. Buscando huerto...');
-      const HuertoClass = Parse.Object.extend("Huerto");
-      const queryHuerto = new Parse.Query(HuertoClass);
-      queryHuerto.include('colaboradores');
-      const huerto = await queryHuerto.get(huertoId);
-      console.log('5. Huerto encontrado:', huerto.id);
-      console.log('6. Dueño del huerto:', huerto.get('dueno').id);
-      
-      // Verificar que es el dueño
-      if (huerto.get('dueno').id !== user.id) {
-        throw new Error('Solo el dueño puede invitar colaboradores');
-      }
-      console.log('7. Verificación de dueño: OK');
-
-      // Intentar buscar por username
-      console.log('8. Preparando búsqueda de usuario...');
-      const emailNormalizado = emailColaborador.toLowerCase().trim();
-      console.log('9. Email normalizado:', emailNormalizado);
-      
-      let colaborador;
-      
-      // Intentar con Cloud Function primero
-      console.log('10. Intentando con Cloud Function buscarUsuarioPorEmail...');
-      try {
-        const resultado = await Parse.Cloud.run('buscarUsuarioPorEmail', {
-          email: emailNormalizado
-        });
-        
-        console.log('11. Cloud Function ejecutada exitosamente');
-        console.log('12. Resultado:', resultado);
-        
-        if (resultado) {
-          console.log('13. Usuario encontrado con Cloud Function, obteniendo objeto completo...');
-          colaborador = await new Parse.Query(Parse.User).get(resultado.objectId);
-          console.log('14. Objeto completo obtenido');
-        } else {
-          console.log('13. Cloud Function retornó null (usuario no encontrado)');
-        }
-      } catch (cloudError) {
-        console.log('11. Cloud Function falló:', cloudError.message);
-        console.log('12. Intentando con query directa como fallback...');
-        
-        // Fallback: query directa
-        const queryUser = new Parse.Query(Parse.User);
-        queryUser.equalTo('username', emailNormalizado);
-        
-        try {
-          colaborador = await queryUser.first();
-          console.log('13. Query directa ejecutada');
-        } catch (searchError) {
-          console.error('❌ ERROR EN BÚSQUEDA:', searchError);
-          throw new Error('Error al buscar usuario: ' + searchError.message);
-        }
-      }
-      
-      console.log('15. Colaborador encontrado:', colaborador ? 'SÍ' : 'NO');
-        
-        if (colaborador) {
-          console.log('16. ID del colaborador:', colaborador.id);
-          console.log('17. Nombre del colaborador:', colaborador.get('nombre'));
-          console.log('18. Username del colaborador:', colaborador.get('username'));
-        } else {
-          console.log('16. colaborador es null o undefined');
-        }
-      
-      if (!colaborador) {
-        console.log('19. NO SE ENCONTRÓ COLABORADOR - Lanzando error');
-        throw new Error('No se encontró un usuario registrado con ese email. El usuario debe crear una cuenta primero.');
-      }
-
-      console.log('20. Verificando que no sea el mismo usuario...');
-      if (colaborador.id === user.id) {
-        throw new Error('No puedes agregarte a ti mismo como colaborador');
-      }
-      console.log('21. Verificación: OK, no es el mismo usuario');
-
-      // Verificar que no esté ya agregado
-      console.log('22. Verificando colaboradores existentes...');
-      const colaboradores = huerto.get('colaboradores') || [];
-      console.log('23. Número de colaboradores actuales:', colaboradores.length);
-      const yaExiste = colaboradores.some(c => c.id === colaborador.id);
-      console.log('24. ¿Ya existe?:', yaExiste);
-      
-      if (yaExiste) {
-        throw new Error('Este usuario ya es colaborador del huerto');
-      }
-
-      // Agregar colaborador
-      console.log('25. Agregando colaborador al huerto...');
-      huerto.addUnique('colaboradores', colaborador);
-      
-      // Actualizar ACL para dar permisos al colaborador
-      console.log('26. Actualizando ACL...');
-      const acl = huerto.getACL();
-      console.log('27. ACL actual obtenido');
-      acl.setReadAccess(colaborador.id, true);
-      acl.setWriteAccess(colaborador.id, true);
-      huerto.setACL(acl);
-      console.log('28. ACL actualizado en memoria');
-      
-      console.log('29. Guardando huerto...');
-      await huerto.save();
-      console.log('30. Huerto guardado exitosamente');
-
-      const resultado = {
-        id: colaborador.id,
-        nombre: colaborador.get('nombre'),
-        email: colaborador.get('username')
-      };
-      
-      console.log('31. Resultado:', resultado);
-      console.log('=== FIN invitarColaborador - ÉXITO ===');
-      
-      return resultado;
-    } catch (error) {
-      console.error('=== ERROR en invitarColaborador ===');
-      console.error('Tipo de error:', error.constructor.name);
-      console.error('Mensaje:', error.message);
-      console.error('Stack:', error.stack);
-      console.error('=== FIN ERROR ===');
-      throw error;
+    // Buscar el huerto
+    console.log('4. Buscando huerto...');
+    const HuertoClass = Parse.Object.extend("Huerto");
+    const queryHuerto = new Parse.Query(HuertoClass);
+    queryHuerto.include('colaboradores');
+    const huerto = await queryHuerto.get(huertoId);
+    
+    console.log('5. Huerto encontrado:', huerto.id);
+    console.log('6. Dueño del huerto:', huerto.get('dueno').id);
+    
+    // Verificar que es el dueño
+    if (huerto.get('dueno').id !== user.id) {
+      throw new Error('Solo el dueño puede invitar colaboradores');
     }
-  },
+    console.log('7. Verificación de dueño: OK');
+
+    // Verificar que no se está agregando a sí mismo
+    if (user.get('email') === emailColaborador) {
+      throw new Error('No puedes agregarte a ti mismo como colaborador');
+    }
+
+    console.log('8. Ejecutando Cloud Function...');
+    
+    // Buscar usuario con Cloud Function
+    const resultado = await Parse.Cloud.run('buscarUsuarioPorEmail', { 
+      email: emailColaborador 
+    });
+    
+    console.log('9. Cloud Function exitosa, resultado:', resultado);
+
+    // ✅ AQUÍ ESTÁ EL CAMBIO CLAVE:
+    // No intentar hacer .get(), usar directamente createWithoutData
+    const colaboradorId = resultado.objectId || resultado.id;
+    console.log('10. ID del colaborador:', colaboradorId);
+
+    // Crear pointer al usuario usando solo el ID
+    const colaborador = Parse.User.createWithoutData(colaboradorId);
+    console.log('11. Pointer creado para colaborador');
+
+    // Verificar que no esté ya agregado
+    const colaboradores = huerto.get('colaboradores') || [];
+    const yaExiste = colaboradores.some(c => c.id === colaboradorId);
+    
+    if (yaExiste) {
+      throw new Error('Este usuario ya es colaborador del huerto');
+    }
+    console.log('12. Usuario no está duplicado, continuando...');
+
+    // Agregar colaborador
+    huerto.addUnique('colaboradores', colaborador);
+    console.log('13. Colaborador agregado al array');
+    
+    // Actualizar ACL para dar permisos al colaborador
+    const acl = huerto.getACL() || new Parse.ACL(user);
+    acl.setReadAccess(colaboradorId, true);
+    acl.setWriteAccess(colaboradorId, true);
+    huerto.setACL(acl);
+    console.log('14. ACL actualizado');
+    
+    await huerto.save();
+    console.log('15. Huerto guardado exitosamente');
+
+    // Retornar la info del colaborador
+    return {
+      id: colaboradorId,
+      nombre: resultado.nombre,
+      email: resultado.email
+    };
+  } catch (error) {
+    console.error('❌ Error en invitarColaborador:', error);
+    throw error;
+  }
+},
 
   // Quitar colaborador
   async quitarColaborador(huertoId, colaboradorId) {
