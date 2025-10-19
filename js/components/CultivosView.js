@@ -1,9 +1,15 @@
-/**
- * Componente CultivosView
- * Vista de gestión de cultivos - CON ACCESO DIRECTO A PLAGAS
- */
+// PASO 1: REEMPLAZA la función CultivosView en js/components/CultivosView.js
+// Debe recibir las props 'plagas' y 'onReportarPlaga'
 
-function CultivosView({ cultivos, plagas, onAgregarCultivo, onEliminarCultivo, onCambiarEstado, onCambiarRiego, onReportarPlaga }) {
+function CultivosView({ 
+  cultivos, 
+  plagas,
+  onAgregarCultivo, 
+  onEliminarCultivo, 
+  onCambiarEstado, 
+  onCambiarRiego,
+  onReportarPlaga 
+}) {
   const h = React.createElement;
   const { useState } = React;
   
@@ -65,7 +71,7 @@ function CultivosView({ cultivos, plagas, onAgregarCultivo, onEliminarCultivo, o
             ),
             h('div', { className: 'form-group', style: { alignSelf: 'flex-end' } },
               h('button', { type: 'submit', className: 'btn btn-primary', style: { width: '100%' } },
-                h(Icons.Plus, { size: 20 }),
+                h(window.Icons.Plus, { size: 20 }),
                 'Agregar'
               )
             )
@@ -75,7 +81,7 @@ function CultivosView({ cultivos, plagas, onAgregarCultivo, onEliminarCultivo, o
     ),
     cultivos.length === 0 ?
       h('div', { className: 'empty-state' },
-        h(Icons.Sprout, { size: 64, className: 'empty-state-icon' }),
+        h(window.Icons.Sprout, { size: 64, className: 'empty-state-icon' }),
         h('h3', { className: 'empty-state-title' }, 'No hay cultivos registrados'),
         h('p', { className: 'empty-state-description' }, 'Agrega tu primer cultivo')
       ) :
@@ -83,52 +89,74 @@ function CultivosView({ cultivos, plagas, onAgregarCultivo, onEliminarCultivo, o
         ...cultivos.map(cultivo => h(CultivoCard, {
           key: cultivo.id,
           cultivo,
-          plagas: plagas || [],
+          plagas,
           onEliminar: onEliminarCultivo,
           onCambiarEstado,
           onCambiarRiego,
-          onReportarPlaga // ← NUEVO: pasar handler
+          onReportarPlaga
         }))
       )
   );
 }
+
+// PASO 2: REEMPLAZA la función CultivoCard completa
 
 function CultivoCard({ cultivo, plagas, onEliminar, onCambiarEstado, onCambiarRiego, onReportarPlaga }) {
   const h = React.createElement;
   const { formatDate, getDaysSincePlanting, getEstadoEmoji, getRiegoEmoji } = window.helpers;
   const dias = getDaysSincePlanting(cultivo.fechaSiembra);
 
-  // Calcular plagas que afectan a este cultivo
-  const plagasActivas = plagas.filter(p => 
-    (p.estadoControl === 'activa' || p.estadoControl === 'en_tratamiento') &&
-    p.cultivosAfectados.some(c => c.id === cultivo.id)
-  );
+  // Calcular plagas activas (no resueltas) que afectan este cultivo
+  const plagasActivasCultivo = plagas ? plagas.filter(plaga => {
+    const esActivaOTratamiento = ['activa', 'en_tratamiento'].includes(plaga.estadoControl);
+    const afectaEsteCultivo = plaga.cultivosAfectados && 
+      plaga.cultivosAfectados.some(c => {
+        if (typeof c === 'string') return c === cultivo.id;
+        if (c && c.id) return c.id === cultivo.id;
+        if (c && c.objectId) return c.objectId === cultivo.id;
+        return false;
+      });
+    return esActivaOTratamiento && afectaEsteCultivo;
+  }).length : 0;
 
   return h('article', { className: 'card card-primary' },
     h('div', { className: 'card-body' },
       h('div', { className: 'cultivo-header' },
         h('div', null,
           h('h3', { className: 'cultivo-title' }, cultivo.nombre),
-          h('p', { className: 'cultivo-meta' }, `Parcela: ${cultivo.parcela}`),
-          // Badge de plagas activas
-          plagasActivas.length > 0 && h('div', { 
-            className: 'cultivo-plaga-badge',
-            title: `${plagasActivas.length} plaga${plagasActivas.length > 1 ? 's' : ''} activa${plagasActivas.length > 1 ? 's' : ''}`
-          },
-            h(Icons.AlertTriangle, { size: 14 }),
-            h('span', null, `${plagasActivas.length} plaga${plagasActivas.length > 1 ? 's' : ''}`)
-          )
+          h('p', { className: 'cultivo-meta' }, `Parcela: ${cultivo.parcela}`)
         ),
         h('button', {
           onClick: () => onEliminar(cultivo.id),
           className: 'btn btn-ghost btn-sm'
-        }, h(Icons.Trash2, { size: 18 }))
+        }, h(window.Icons.Trash2, { size: 18 }))
       ),
+
       h('div', { className: 'cultivo-body' },
         h('div', { className: 'cultivo-info' },
-          h(Icons.Calendar, { size: 16 }),
+          h(window.Icons.Calendar, { size: 16 }),
           h('span', null, `Sembrado: ${formatDate(cultivo.fechaSiembra)} (${dias} días)`)
         ),
+
+        // Badge de plagas mejorado - icono y número en línea
+        plagasActivasCultivo > 0 && h('div', {
+          className: 'cultivo-plagas-badge',
+          onClick: (e) => {
+            e.stopPropagation();
+            if (onReportarPlaga) onReportarPlaga(cultivo.id);
+          },
+          title: `${plagasActivasCultivo} plaga${plagasActivasCultivo !== 1 ? 's' : ''} activa${plagasActivasCultivo !== 1 ? 's' : ''} - Click para reportar`
+        },
+          h(window.Icons.AlertTriangle, { 
+            size: 20,
+            style: { color: 'white', flexShrink: 0 }
+          }),
+          h('span', { 
+            className: 'count',
+            style: { color: 'white' }
+          }, plagasActivasCultivo)
+        ),
+
         h('div', { className: 'form-group' },
           h('label', { className: 'form-label' }, 'Estado actual'),
           h('select', {
@@ -142,8 +170,9 @@ function CultivoCard({ cultivo, plagas, onEliminar, onCambiarEstado, onCambiarRi
             h('option', { value: 'problema' }, `${getEstadoEmoji('problema')} Problemas`)
           )
         ),
+
         h('div', { className: 'form-group' },
-          h('label', { className: 'form-label' }, h(Icons.Droplet, { size: 16 }), ' Riego'),
+          h('label', { className: 'form-label' }, h(window.Icons.Droplet, { size: 16 }), ' Riego'),
           h('select', {
             value: cultivo.riego,
             onChange: (e) => onCambiarRiego(cultivo.id, e.target.value),
@@ -154,25 +183,15 @@ function CultivoCard({ cultivo, plagas, onEliminar, onCambiarEstado, onCambiarRi
             h('option', { value: 'bajo' }, `${getRiegoEmoji('bajo')} Bajo`)
           )
         ),
-        
-        // ← NUEVO: Botón para reportar plaga
-        onReportarPlaga && h('div', { 
-          className: 'cultivo-actions',
-          style: { 
-            marginTop: 'var(--space-4)',
-            paddingTop: 'var(--space-4)',
-            borderTop: '1px solid var(--color-border)'
-          }
+
+        // Botón reportar plaga
+        onReportarPlaga && h('button', {
+          className: 'btn btn-secondary btn-sm',
+          onClick: () => onReportarPlaga(cultivo.id),
+          style: { width: '100%', marginTop: '0.5rem' }
         },
-          h('button', {
-            onClick: () => onReportarPlaga(cultivo),
-            className: 'btn btn-outline btn-sm',
-            style: { width: '100%' },
-            title: 'Reportar una plaga en este cultivo'
-          },
-            h(Icons.AlertTriangle, { size: 16 }),
-            h('span', null, 'Reportar Plaga')
-          )
+          h(window.Icons.AlertTriangle, { size: 16 }),
+          ' Reportar Plaga'
         )
       )
     )

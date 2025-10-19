@@ -160,9 +160,23 @@ function TarjetaPlaga({ plaga, cultivos, onAddTratamiento, onCambiarEstado, onEl
   const infoPlagas = window.PLAGAS_MALAGA;
   const infoPlaga = infoPlagas[plaga.tipoPlaga] || { nombre: 'Desconocida', emoji: '❓' };
 
-  const cultivosAfectados = plaga.cultivosAfectados.map(cultivoId => {
+  // Extraer IDs - pueden venir como strings directamente o como objetos Parse
+  const cultivosIds = (plaga.cultivosAfectados || []).map(item => {
+    // Si es un string, devolverlo directamente
+    if (typeof item === 'string') return item;
+    // Si es un objeto Parse con .id
+    if (item && item.id) return item.id;
+    // Si tiene la propiedad objectId
+    if (item && item.objectId) return item.objectId;
+    return null;
+  }).filter(Boolean);
+
+  const cultivosAfectados = cultivosIds.map(cultivoId => {
     const cultivo = cultivos.find(c => c.id === cultivoId);
-    return cultivo ? { id: cultivoId, nombre: cultivo.nombre, emoji: cultivo.emoji || '🌱' } : null;
+    if (cultivo) {
+      return { id: cultivoId, nombre: cultivo.nombre, emoji: cultivo.emoji || '🌱' };
+    }
+    return null;
   }).filter(Boolean);
 
   const diasDesde = window.PlagaService.diasDesdeDeteccion(plaga);
@@ -287,9 +301,16 @@ function ModalNuevaPlaga({ cultivos, cultivoPreseleccionado, onGuardar, onCerrar
       return;
     }
 
+    // Convertir IDs a objetos Parse Pointer
+    const CultivoClass = Parse.Object.extend("Cultivo");
+    const cultivosPointers = cultivosSeleccionados.map(id => {
+      const cultivo = CultivoClass.createWithoutData(id);
+      return cultivo;
+    });
+
     await onGuardar({
       tipoPlaga,
-      cultivosAfectados: cultivosSeleccionados,
+      cultivosAfectados: cultivosPointers,
       severidad,
       notas,
       estadoControl: 'activa',

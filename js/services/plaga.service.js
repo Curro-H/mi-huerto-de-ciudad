@@ -49,54 +49,74 @@ const PlagaService = {
    * @param {Object} plagaData - Datos de la plaga
    */
   async create(huertoId, plagaData) {
-    try {
-      if (!huertoId) throw new Error('Se requiere un huerto');
-
-      // Validar datos
-      if (!plagaData.tipoPlaga) throw new Error('El tipo de plaga es requerido');
-      if (!plagaData.cultivosIds || plagaData.cultivosIds.length === 0) {
-        throw new Error('Debe seleccionar al menos un cultivo afectado');
-      }
-      if (!plagaData.severidad) throw new Error('La severidad es requerida');
-
-      const HuertoClass = Parse.Object.extend("Huerto");
-      const huerto = HuertoClass.createWithoutData(huertoId);
-
-      const PlagaClass = Parse.Object.extend("Plaga");
-      const plaga = new PlagaClass();
-      
-      plaga.set('huerto', huerto);
-      plaga.set('tipoPlaga', plagaData.tipoPlaga);
-      plaga.set('fechaDeteccion', plagaData.fechaDeteccion || new Date());
-      plaga.set('severidad', plagaData.severidad);
-      plaga.set('estadoControl', 'activa'); // Siempre inicia como activa
-      plaga.set('notas', plagaData.notas || '');
-      plaga.set('tratamientos', []); // Array vacío inicial
-      
-      // Crear pointers de cultivos afectados
-      const CultivoClass = Parse.Object.extend("Cultivo");
-      const cultivosPointers = plagaData.cultivosIds.map(id => 
-        CultivoClass.createWithoutData(id)
-      );
-      plaga.set('cultivosAfectados', cultivosPointers);
-
-      // Heredar ACL del huerto
-      const queryHuerto = new Parse.Query(HuertoClass);
-      const huertoObj = await queryHuerto.get(huertoId);
-      const acl = huertoObj.getACL();
-      plaga.setACL(acl);
-
-      await plaga.save();
-      
-      console.log('✅ Plaga creada:', plaga.id);
-      
-      // Recargar con includes para retornar objeto completo
-      return await this.getById(plaga.id);
-    } catch (error) {
-      console.error('Error al crear plaga:', error);
-      throw error;
+  try {
+    console.log('🐛 Creando plaga con datos:', plagaData);
+    
+    if (!huertoId) throw new Error('Se requiere un huerto');
+    
+    // Validaciones
+    if (!plagaData.tipoPlaga) {
+      throw new Error('Debe seleccionar un tipo de plaga');
     }
-  },
+    
+    if (!plagaData.cultivosAfectados || plagaData.cultivosAfectados.length === 0) {
+      throw new Error('Debe seleccionar al menos un cultivo afectado');
+    }
+    
+    if (!plagaData.severidad) {
+      throw new Error('Debe seleccionar la severidad');
+    }
+
+    // Crear objetos Parse
+    const HuertoClass = Parse.Object.extend("Huerto");
+    const huerto = HuertoClass.createWithoutData(huertoId);
+
+    const PlagaClass = Parse.Object.extend("Plaga");
+    const plaga = new PlagaClass();
+    
+    // Establecer relaciones y campos
+    plaga.set('huerto', huerto);
+    plaga.set('tipoPlaga', plagaData.tipoPlaga);
+    plaga.set('severidad', plagaData.severidad);
+    plaga.set('estadoControl', plagaData.estadoControl || 'activa');
+    plaga.set('fechaDeteccion', plagaData.fechaDeteccion || new Date());
+    plaga.set('notas', plagaData.notas || '');
+    plaga.set('tratamientos', plagaData.tratamientos || []);
+    
+    // IMPORTANTE: cultivosAfectados ya viene como array de Parse Pointers
+    // desde PlagasView después de la corrección
+    plaga.set('cultivosAfectados', plagaData.cultivosAfectados);
+
+    // Heredar ACL del huerto
+    const queryHuerto = new Parse.Query(HuertoClass);
+    const huertoObj = await queryHuerto.get(huertoId);
+    const acl = huertoObj.getACL();
+    plaga.setACL(acl);
+    
+    // Guardar
+    const resultado = await plaga.save();
+    
+    console.log('✅ Plaga creada exitosamente:', resultado.id);
+    
+    // Retornar objeto formateado
+    return {
+      id: resultado.id,
+      tipoPlaga: resultado.get('tipoPlaga'),
+      cultivosAfectados: resultado.get('cultivosAfectados').map(c => c.id),
+      severidad: resultado.get('severidad'),
+      estadoControl: resultado.get('estadoControl'),
+      fechaDeteccion: resultado.get('fechaDeteccion'),
+      notas: resultado.get('notas'),
+      tratamientos: resultado.get('tratamientos') || [],
+      fechaResolucion: resultado.get('fechaResolucion') || null,
+      createdAt: resultado.get('createdAt'),
+      updatedAt: resultado.get('updatedAt')
+    };
+  } catch (error) {
+    console.error('Error al crear plaga:', error);
+    throw error;
+  }
+},
 
   /**
    * Obtener una plaga por ID
