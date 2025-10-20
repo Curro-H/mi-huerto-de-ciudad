@@ -244,6 +244,10 @@ function HuertoApp() {
     setVistaActual('plagas');
   };
 
+  const handleVerPlagasDeCultivo = (cultivoId) => {
+  setVistaActual('plagas')
+};
+
   const handleAgregarPlaga = async (plagaData) => {
     if (!huertoActual) return;
     
@@ -260,6 +264,28 @@ function HuertoApp() {
       setSincronizando(false);
     }
   };
+
+  const handleEditarPlaga = async (plagaId, datosActualizados) => {
+  setSincronizando(true);
+  try {
+    const plagaActualizada = await window.PlagaService.editarPlaga(
+      plagaId, 
+      datosActualizados
+    );
+    
+    // Actualizar state
+    setPlagas(plagas.map(p => 
+      p.id === plagaId ? plagaActualizada : p
+    ));
+    
+    mostrarMensaje('✅ Plaga actualizada');
+  } catch (error) {
+    console.error('Error:', error);
+    mostrarMensaje('❌ Error al editar');
+  } finally {
+    setSincronizando(false);
+  }
+};
 
   const handleAddTratamiento = async (plagaId, tratamientoData) => {
     setSincronizando(true);
@@ -365,7 +391,8 @@ function HuertoApp() {
           onEliminarCultivo: handleEliminarCultivo,
           onCambiarEstado: handleCambiarEstado,
           onCambiarRiego: handleCambiarRiego,
-          onReportarPlaga: handleReportarPlagaDesdeCultivo // ← NUEVO
+          onReportarPlaga: handleReportarPlagaDesdeCultivo,
+          onVerPlagas: handleVerPlagasDeCultivo 
         });
       case 'tareas':
         return h(window.TareasView, {
@@ -385,7 +412,8 @@ function HuertoApp() {
             onAgregarPlaga: handleAgregarPlaga,
             onAddTratamiento: handleAddTratamiento,
             onCambiarEstado: handleCambiarEstadoPlaga,
-            onEliminar: handleEliminarPlaga,
+            onEliminar: handleEliminarPlaga,   
+            onEditar: handleEditarPlaga,         
             onClearPreseleccion: () => setCultivoParaPlaga(null) // ← NUEVO: limpiar
           });
         } else {

@@ -8,7 +8,8 @@ function CultivosView({
   onEliminarCultivo, 
   onCambiarEstado, 
   onCambiarRiego,
-  onReportarPlaga 
+  onReportarPlaga, 
+  onVerPlagas
 }) {
   const h = React.createElement;
   const { useState } = React;
@@ -93,7 +94,8 @@ function CultivosView({
           onEliminar: onEliminarCultivo,
           onCambiarEstado,
           onCambiarRiego,
-          onReportarPlaga
+          onReportarPlaga,
+          onVerPlagas
         }))
       )
   );
@@ -101,7 +103,7 @@ function CultivosView({
 
 // PASO 2: REEMPLAZA la función CultivoCard completa
 
-function CultivoCard({ cultivo, plagas, onEliminar, onCambiarEstado, onCambiarRiego, onReportarPlaga }) {
+function CultivoCard({ cultivo, plagas, onEliminar, onCambiarEstado, onCambiarRiego, onReportarPlaga, onVerPlagas }) {
   const h = React.createElement;
   const { formatDate, getDaysSincePlanting, getEstadoEmoji, getRiegoEmoji } = window.helpers;
   const dias = getDaysSincePlanting(cultivo.fechaSiembra);
@@ -143,7 +145,7 @@ function CultivoCard({ cultivo, plagas, onEliminar, onCambiarEstado, onCambiarRi
           className: 'cultivo-plagas-badge',
           onClick: (e) => {
             e.stopPropagation();
-            if (onReportarPlaga) onReportarPlaga(cultivo.id);
+            if(onVerPlagas) onVerPlagas(cultivo.id);
           },
           title: `${plagasActivasCultivo} plaga${plagasActivasCultivo !== 1 ? 's' : ''} activa${plagasActivasCultivo !== 1 ? 's' : ''} - Click para reportar`
         },
