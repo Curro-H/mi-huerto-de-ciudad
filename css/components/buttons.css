@@ -23,25 +23,308 @@
   cursor: not-allowed;
 }
 
-.btn-primary {
-  background: var(--color-primary-600);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-700);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-primary);
-}
-
+.btn-primary,
 .btn-secondary {
-  background: var(--color-secondary-600);
-  color: white;
+  /* Padding mejorado - más cómodo y profesional */
+  padding: 0.75rem 1.5rem;
+  
+  /* Tamaño de fuente apropiado */
+  font-size: 0.9375rem; /* 15px */
+  font-weight: 600;
+  
+  /* Altura mínima para consistencia */
+  min-height: 44px;
+  
+  /* Espaciado interno más cómodo */
+  line-height: 1.5;
+  
+  /* Border radius moderno */
+  border-radius: 8px;
+  
+  /* Transiciones suaves */
+  transition: all 0.2s ease;
+  
+  /* Cursor pointer */
+  cursor: pointer;
+  
+  /* Display flex para centrar contenido */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  
+  /* Sin outline por defecto */
+  outline: none;
+  border: 2px solid transparent;
 }
 
-.btn-secondary:hover:not(:disabled) {
-  background: var(--color-secondary-700);
+/* ============================================
+   BOTONES PRINCIPALES
+   ============================================ */
+
+.btn-primary,
+.btn-secondary {
+  /* Padding mejorado - más cómodo y profesional */
+  padding: 0.75rem 1.5rem;
+  
+  /* Tamaño de fuente apropiado */
+  font-size: 0.9375rem; /* 15px */
+  font-weight: 600;
+  
+  /* Altura mínima para consistencia */
+  min-height: 44px;
+  
+  /* Espaciado interno más cómodo */
+  line-height: 1.5;
+  
+  /* Border radius moderno */
+  border-radius: 8px;
+  
+  /* Transiciones suaves */
+  transition: all 0.2s ease;
+  
+  /* Cursor pointer */
+  cursor: pointer;
+  
+  /* Display flex para centrar contenido */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  
+  /* Sin outline por defecto */
+  outline: none;
+  border: 2px solid transparent;
+}
+
+/* Botón Primario */
+.btn-primary {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.btn-primary:hover {
+  background: #2563eb;
+  border-color: #2563eb;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+.btn-primary:disabled {
+  background: #9ca3af;
+  border-color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+/* Botón Secundario */
+.btn-secondary {
+  background: white;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.btn-secondary:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-secondary:active {
+  transform: translateY(0);
+  background: #f3f4f6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.btn-secondary:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  border-color: #3b82f6;
+}
+
+.btn-secondary:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+/* ============================================
+   VARIANTES DE TAMAÑO
+   ============================================ */
+
+/* Botón pequeño */
+.btn-primary.btn-sm,
+.btn-secondary.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  min-height: 36px;
+}
+
+/* Botón grande */
+.btn-primary.btn-lg,
+.btn-secondary.btn-lg {
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  min-height: 52px;
+}
+
+/* Botón ancho completo */
+.btn-primary.btn-block,
+.btn-secondary.btn-block {
+  width: 100%;
+  display: flex;
+}
+
+/* ============================================
+   BOTÓN CON ÍCONO
+   ============================================ */
+
+.btn-primary svg,
+.btn-secondary svg {
+  flex-shrink: 0;
+}
+
+/* Si el icono es el único contenido */
+.btn-primary:has(svg:only-child),
+.btn-secondary:has(svg:only-child) {
+  padding: 0.75rem;
+  aspect-ratio: 1;
+  min-width: 44px;
+}
+
+/* ============================================
+   GRUPOS DE BOTONES
+   ============================================ */
+
+.btn-group {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.btn-group.btn-group-right {
+  justify-content: flex-end;
+}
+
+.btn-group.btn-group-center {
+  justify-content: center;
+}
+
+.btn-group.btn-group-stretch {
+  width: 100%;
+}
+
+.btn-group.btn-group-stretch > * {
+  flex: 1;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .btn-primary,
+  .btn-secondary {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    min-height: 42px;
+  }
+  
+  /* En móvil, los botones pueden ser más anchos */
+  .btn-primary.btn-mobile-block,
+  .btn-secondary.btn-mobile-block {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Botones más grandes en móviles pequeños para mejor touch */
+  .btn-primary,
+  .btn-secondary {
+    min-height: 48px;
+    padding: 0.75rem 1.5rem;
+  }
+}
+
+/* ============================================
+   ESTADOS ESPECIALES
+   ============================================ */
+
+/* Botón en loading */
+.btn-primary.loading,
+.btn-secondary.loading {
+  position: relative;
+  color: transparent;
+  pointer-events: none;
+}
+
+.btn-primary.loading::after,
+.btn-secondary.loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-left: -8px;
+  margin-top: -8px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  border-right-color: transparent;
+  animation: btn-spin 0.6s linear infinite;
+}
+
+.btn-primary.loading::after {
+  border-color: white;
+  border-right-color: transparent;
+}
+
+.btn-secondary.loading::after {
+  border-color: #374151;
+  border-right-color: transparent;
+}
+
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   ACCESIBILIDAD
+   ============================================ */
+
+/* Focus visible para navegación por teclado */
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Reducir movimiento para usuarios con preferencias */
+@media (prefers-reduced-motion: reduce) {
+  .btn-primary,
+  .btn-secondary {
+    transition: none;
+  }
+  
+  .btn-primary:hover,
+  .btn-secondary:hover {
+    transform: none;
+  }
 }
 
 .btn-outline {

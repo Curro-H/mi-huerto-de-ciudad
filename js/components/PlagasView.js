@@ -553,117 +553,144 @@ function PlagasView({
   // ============================================
   // MODAL: REGISTRAR TRATAMIENTO
   // ============================================
-  function ModalTratamiento() {
-    if (!modalTratamiento) return null;
+function ModalTratamiento() {
+  if (!modalTratamiento) return null;
 
-    const [metodo, setMetodo] = useState('');
-    const [notas, setNotas] = useState('');
-    const [mejoraObservada, setMejoraObservada] = useState(false);
+  const [metodo, setMetodo] = useState('');
+  const [notas, setNotas] = useState('');
+  const [mejoraObservada, setMejoraObservada] = useState(false);
 
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      if (!metodo) {
-        alert('❌ Selecciona un método de tratamiento');
-        return;
-      }
+  // NUEVO: Obtener info de la plaga para mostrar recomendaciones
+  const infoPlaga = window.PlagaService?.getInfoTipo(modalTratamiento.tipoPlaga);
 
-      handleRegistrarTratamiento(modalTratamiento.id, {
-        metodo,
-        notas: notas.trim(),
-        mejoraObservada
-      });
-    };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!metodo) {
+      alert('❌ Selecciona un método de tratamiento');
+      return;
+    }
 
-    const metodosTratamiento = [
-      'Jabón potásico',
-      'Aceite de neem',
-      'Purín de ortiga',
-      'Purín de ajo',
-      'Bacillus thuringiensis',
-      'Trampas cromáticas',
-      'Tierra de diatomeas',
-      'Recolección manual',
-      'Control biológico (mariquitas/crisopas)',
-      'Azufre',
-      'Cobre',
-      'Bicarbonato de sodio',
-      'Otro'
-    ];
+    handleRegistrarTratamiento(modalTratamiento.id, {
+      metodo,
+      notas: notas.trim(),
+      mejoraObservada
+    });
+  };
 
-    return h('div', { className: 'modal-overlay', onClick: handleCerrarModalTratamiento },
-      h('div', { 
-        className: 'modal-content modal-tratamiento',
-        onClick: (e) => e.stopPropagation()
-      },
-        h('div', { className: 'modal-header' },
-          h('h2', null, '💊 Registrar Tratamiento'),
-          h('button', {
-            className: 'modal-close',
-            onClick: handleCerrarModalTratamiento,
-            'aria-label': 'Cerrar'
-          }, '×')
-        ),
+  const metodosTratamiento = [
+    'Jabón potásico',
+    'Aceite de neem',
+    'Purín de ortiga',
+    'Purín de ajo',
+    'Bacillus thuringiensis',
+    'Trampas cromáticas',
+    'Tierra de diatomeas',
+    'Recolección manual',
+    'Control biológico (mariquitas/crisopas)',
+    'Azufre',
+    'Cobre',
+    'Bicarbonato de sodio',
+    'Otro'
+  ];
 
-        h('form', { className: 'modal-body', onSubmit: handleSubmit },
-          // Método
-          h('div', { className: 'form-group' },
-            h('label', { className: 'form-label' },
-              'Método aplicado ',
-              h('span', { className: 'required' }, '*')
-            ),
-            h('select', {
-              className: 'form-select',
-              value: metodo,
-              onChange: (e) => setMetodo(e.target.value),
-              required: true
-            },
-              h('option', { value: '' }, '-- Selecciona un método --'),
-              metodosTratamiento.map(m =>
-                h('option', { key: m, value: m }, m)
+  return h('div', { className: 'modal-overlay', onClick: handleCerrarModalTratamiento },
+    h('div', { 
+      className: 'modal-content modal-tratamiento',
+      onClick: (e) => e.stopPropagation()
+    },
+      h('div', { className: 'modal-header' },
+        h('h2', null, '💊 Registrar Tratamiento'),
+        h('button', {
+          className: 'modal-close',
+          onClick: handleCerrarModalTratamiento,
+          'aria-label': 'Cerrar'
+        }, '×')
+      ),
+
+      h('form', { className: 'modal-body', onSubmit: handleSubmit },
+        
+        // NUEVO: Info box con plaga y recomendaciones
+        h('div', { className: 'info-box info-plaga-actual' },
+          h('div', { className: 'info-box-header' },
+            h('span', { style: { fontSize: '1.5rem' } }, infoPlaga?.emoji || '🐛'),
+            h('span', null, `Tratando: ${infoPlaga?.nombre || modalTratamiento.tipoPlaga}`)
+          ),
+          infoPlaga && h('div', { className: 'info-box-content' },
+            h('p', { 
+              style: { 
+                marginBottom: '8px', 
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                color: '#1e40af'
+              } 
+            }, '💡 Tratamientos recomendados:'),
+            h('ul', { className: 'lista-tratamientos-recomendados' },
+              infoPlaga.tratamientos.map((trat, idx) =>
+                h('li', { key: idx }, `• ${trat}`)
               )
             )
-          ),
-
-          // Notas
-          h('div', { className: 'form-group' },
-            h('label', { className: 'form-label' }, 'Notas sobre la aplicación'),
-            h('textarea', {
-              className: 'form-textarea',
-              value: notas,
-              onChange: (e) => setNotas(e.target.value),
-              placeholder: 'Detalles de cómo/dónde se aplicó...',
-              rows: 3
-            })
-          ),
-
-          // Mejora observada
-          h('div', { className: 'form-group' },
-            h('label', { className: 'checkbox-label' },
-              h('input', {
-                type: 'checkbox',
-                checked: mejoraObservada,
-                onChange: (e) => setMejoraObservada(e.target.checked)
-              }),
-              h('span', null, '✅ Mejora observada')
-            )
-          ),
-
-          // Botones
-          h('div', { className: 'modal-footer' },
-            h('button', {
-              type: 'button',
-              className: 'btn-secondary',
-              onClick: handleCerrarModalTratamiento
-            }, 'Cancelar'),
-            h('button', {
-              type: 'submit',
-              className: 'btn-primary'
-            }, 'Registrar Tratamiento')
           )
+        ),
+
+        // Método
+        h('div', { className: 'form-group' },
+          h('label', { className: 'form-label' },
+            'Método aplicado ',
+            h('span', { className: 'required' }, '*')
+          ),
+          h('select', {
+            className: 'form-select',
+            value: metodo,
+            onChange: (e) => setMetodo(e.target.value),
+            required: true
+          },
+            h('option', { value: '' }, '-- Selecciona un método --'),
+            metodosTratamiento.map(m =>
+              h('option', { key: m, value: m }, m)
+            )
+          )
+        ),
+
+        // Notas
+        h('div', { className: 'form-group' },
+          h('label', { className: 'form-label' }, 'Notas sobre la aplicación'),
+          h('textarea', {
+            className: 'form-textarea',
+            value: notas,
+            onChange: (e) => setNotas(e.target.value),
+            placeholder: 'Detalles de cómo/dónde se aplicó...',
+            rows: 3
+          })
+        ),
+
+        // Mejora observada
+        h('div', { className: 'form-group' },
+          h('label', { className: 'checkbox-label' },
+            h('input', {
+              type: 'checkbox',
+              checked: mejoraObservada,
+              onChange: (e) => setMejoraObservada(e.target.checked)
+            }),
+            h('span', null, '✅ Mejora observada')
+          )
+        ),
+
+        // Botones
+        h('div', { className: 'modal-footer' },
+          h('button', {
+            type: 'button',
+            className: 'btn-secondary',
+            onClick: handleCerrarModalTratamiento
+          }, 'Cancelar'),
+          h('button', {
+            type: 'submit',
+            className: 'btn-primary'
+          }, 'Registrar Tratamiento')
         )
       )
-    );
-  }
+    )
+  );
+}
 
   // ============================================
   // MODAL: DETALLE DE PLAGA
